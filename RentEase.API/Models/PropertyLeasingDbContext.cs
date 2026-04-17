@@ -1,63 +1,47 @@
 ﻿using Microsoft.EntityFrameworkCore;
-using RentEase.API.Models;
-using System;
 
-namespace RentEase.API.Models
+namespace RentEase.API.Models;
+
+public partial class PropertyLeasingDbContext : DbContext
 {
-    public partial class PropertyLeasingDbContext : DbContext
+    public PropertyLeasingDbContext(DbContextOptions<PropertyLeasingDbContext> options)
+        : base(options) { }
+
+    public virtual DbSet<Property> Properties { get; set; }
+    public virtual DbSet<Unit> Units { get; set; }
+    public virtual DbSet<User> Users { get; set; }
+    public virtual DbSet<MaintenanceStaff> MaintenanceStaff { get; set; }
+    public virtual DbSet<LeaseApplication> LeaseApplications { get; set; }
+    public virtual DbSet<LeaseAgreement> LeaseAgreements { get; set; }
+    public virtual DbSet<Payment> Payments { get; set; }
+    public virtual DbSet<MaintenanceRequest> MaintenanceRequests { get; set; }
+    public virtual DbSet<ScreeningUnit> ScreeningUnits { get; set; }
+
+    protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
-        public PropertyLeasingDbContext(DbContextOptions<PropertyLeasingDbContext> options)
-            : base(options) { }
+        modelBuilder.Entity<Unit>()
+            .HasOne(u => u.Property)
+            .WithMany(p => p.Units)
+            .HasForeignKey(u => u.PropertyId);
 
-        public virtual DbSet<Property> Properties { get; set; }
-        public virtual DbSet<Unit> Units { get; set; }
-        public virtual DbSet<User> Users { get; set; }
-        public virtual DbSet<MaintenanceStaff> MaintenanceStaff { get; set; }
-        public virtual DbSet<LeaseApplication> LeaseApplications { get; set; }
-        public virtual DbSet<LeaseAgreement> LeaseAgreements { get; set; }
-        public virtual DbSet<Payment> Payments { get; set; }
-        public virtual DbSet<MaintenanceRequest> MaintenanceRequests { get; set; }
-        public virtual DbSet<MaintenanceStatusHistory> MaintenanceStatusHistories { get; set; }
-        public virtual DbSet<Notification> Notifications { get; set; }
-        public virtual DbSet<Amenity> Amenities { get; set; }
-        public virtual DbSet<UnitAmenity> UnitAmenities { get; set; }
-        public virtual DbSet<ScreeningUnit> ScreeningUnits { get; set; }
-        public virtual DbSet<Feedback> Feedbacks { get; set; }
+        modelBuilder.Entity<MaintenanceRequest>()
+            .HasOne(mr => mr.Unit)
+            .WithMany(u => u.MaintenanceRequests)
+            .HasForeignKey(mr => mr.UnitId);
 
-        protected override void OnModelCreating(ModelBuilder modelBuilder)
-        {
-            // All PKs are GUIDs with default NEWID() - no ValueGeneratedOnAdd needed
-            modelBuilder.Entity<Property>().HasKey(p => p.PropertyId);
-            modelBuilder.Entity<Unit>().HasKey(u => u.UnitId);
-            modelBuilder.Entity<User>().HasKey(u => u.Id);
-            modelBuilder.Entity<MaintenanceStaff>().HasKey(ms => ms.StaffId);
-            modelBuilder.Entity<MaintenanceRequest>().HasKey(mr => mr.RequestId);
+        modelBuilder.Entity<MaintenanceRequest>()
+            .HasOne(mr => mr.Tenant)
+            .WithMany()
+            .HasForeignKey(mr => mr.TenantId);
 
-            // Relationships
-            modelBuilder.Entity<Unit>()
-                .HasOne(u => u.Property)
-                .WithMany(p => p.Units)
-                .HasForeignKey(u => u.PropertyId);
+        modelBuilder.Entity<MaintenanceRequest>()
+            .HasOne(mr => mr.AssignedStaffUser)
+            .WithMany()
+            .HasForeignKey(mr => mr.AssignedTo)
+            .OnDelete(DeleteBehavior.SetNull);
 
-            modelBuilder.Entity<MaintenanceRequest>()
-                .HasOne(mr => mr.Unit)
-                .WithMany(u => u.MaintenanceRequests)
-                .HasForeignKey(mr => mr.UnitId);
-
-            modelBuilder.Entity<MaintenanceRequest>()
-                .HasOne(mr => mr.Tenant)
-                .WithMany(u => u.MaintenanceRequestsAsTenant)
-                .HasForeignKey(mr => mr.TenantId);
-
-            modelBuilder.Entity<MaintenanceRequest>()
-                .HasOne(mr => mr.AssignedStaffUser)
-                .WithMany()
-                .HasForeignKey(mr => mr.AssignedTo)
-                .OnDelete(DeleteBehavior.SetNull);
-
-            OnModelCreatingPartial(modelBuilder);
-        }
-
-        partial void OnModelCreatingPartial(ModelBuilder modelBuilder);
+        OnModelCreatingPartial(modelBuilder);
     }
+
+    partial void OnModelCreatingPartial(ModelBuilder modelBuilder);
 }

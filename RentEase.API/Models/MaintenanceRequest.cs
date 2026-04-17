@@ -1,73 +1,46 @@
 using System;
-using System.Collections.Generic;
 using System.ComponentModel.DataAnnotations;
 using System.ComponentModel.DataAnnotations.Schema;
 
 namespace RentEase.API.Models;
 
-[Table("MaintenanceRequest")]
+[Table("MaintenanceRequests")]
 public partial class MaintenanceRequest
 {
     [Key]
-    [Column("RequestID")]
-    public int RequestId { get; set; }
+    [Column("RequestId")]
+    public Guid RequestId { get; set; } = Guid.NewGuid();
 
-    [Column("UnitID")]
-    public int UnitId { get; set; }
+    [Column("UnitId")]
+    public Guid UnitId { get; set; }
 
-    [Column("TenantUserID")]
-    public int TenantUserId { get; set; }
+    [Column("TenantId")]
+    public Guid TenantId { get; set; }
 
-    [Column("AssignedStaffID")]
-    public int? AssignedStaffId { get; set; }
+    [Column("AssignedTo")]
+    public Guid? AssignedTo { get; set; }
 
     [Required]
-    [StringLength(100)]
-    public string Title { get; set; } = null!;
-
-    [StringLength(500)]
-    public string? Description { get; set; }
-
-    // Plumbing / Electrical / HVAC / General
     [StringLength(50)]
-    public string? RequestType { get; set; }
+    public string Category { get; set; } = null!;
 
-    // Low / Medium / High / Urgent
-    [StringLength(50)]
-    public string Priority { get; set; } = "Medium";
-
-    [Column("StatusID")]
-    public int? StatusId { get; set; }
-
-    // Unique ticket number for public lookup
+    [Required]
     [StringLength(20)]
-    public string? TicketNumber { get; set; }
+    public string Status { get; set; } = null!;
 
-    [Column(TypeName = "datetime")]
-    public DateTime SubmittedAt { get; set; } = DateTime.Now;
+    [Required]
+    [StringLength(1000)]
+    public string Description { get; set; } = null!;
 
-    [Column(TypeName = "datetime")]
-    public DateTime? ResolvedAt { get; set; }
-
-    [StringLength(500)]
-    public string? ResolutionNotes { get; set; }
+    [Column(TypeName = "datetime2")]
+    public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
 
     [ForeignKey("UnitId")]
-    [InverseProperty("MaintenanceRequests")]
     public virtual Unit Unit { get; set; } = null!;
 
-    [ForeignKey("TenantUserId")]
-    [InverseProperty("MaintenanceRequestsAsTenant")]
+    [ForeignKey("TenantId")]
     public virtual User Tenant { get; set; } = null!;
 
-    [ForeignKey("AssignedStaffId")]
-    [InverseProperty("MaintenanceRequestsAsStaff")]
-    public virtual User? AssignedStaff { get; set; }
-
-    [InverseProperty("MaintenanceRequest")]
-    public virtual ICollection<MaintenanceStatusHistory> StatusHistory { get; set; } = new List<MaintenanceStatusHistory>();
-
-    [ForeignKey("StatusId")]
-    [InverseProperty("MaintenanceRequests")]
-    public virtual MaintenanceRequestStatus? Status { get; set; }
+    [ForeignKey("AssignedTo")]
+    public virtual User? AssignedStaffUser { get; set; }
 }
