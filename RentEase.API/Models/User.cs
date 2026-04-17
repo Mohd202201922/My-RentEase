@@ -1,62 +1,48 @@
+using PropertyLeasing.API.Models;
 using System;
 using System.Collections.Generic;
 using System.ComponentModel.DataAnnotations;
 using System.ComponentModel.DataAnnotations.Schema;
 
-namespace PropertyLeasing.API.Models;
+namespace RentEase.API.Models;
 
-[Table("User")]
+[Table("Users")]
 public partial class User
 {
     [Key]
-    [Column("UserID")]
-    public int UserId { get; set; }
+    [Column("Id")]
+    public Guid Id { get; set; } = Guid.NewGuid();
 
     [Required]
-    [StringLength(100)]
-    public string FullName { get; set; } = null!;
-
-    [Required]
-    [StringLength(100)]
+    [StringLength(256)]
     public string Email { get; set; } = null!;
 
-    [StringLength(20)]
-    public string? Phone { get; set; }
+    [Required]
+    public string PasswordHash { get; set; } = null!;
 
-    // Tenant / PropertyManager / MaintenanceStaff
-    [StringLength(50)]
+    [Required]
+    [StringLength(100)]
+    public string FirstName { get; set; } = null!;
+
+    [Required]
+    [StringLength(100)]
+    public string LastName { get; set; } = null!;
+
+    [StringLength(20)]
+    public string? PhoneNumber { get; set; }
+
+    [Required]
+    [StringLength(20)]
     public string Role { get; set; } = "Tenant";
 
-    // For MaintenanceStaff: Plumbing, Electrical, HVAC, General
-    [StringLength(200)]
-    public string? SkillProfile { get; set; }
+    public bool IsActive { get; set; } = true;
 
-    // For MaintenanceStaff: Available / Busy / OffDuty
-    [StringLength(50)]
+    [StringLength(20)]
     public string? AvailabilityStatus { get; set; }
 
-    // Links to ASP.NET Identity user
-    [StringLength(450)]
-    public string? IdentityUserId { get; set; }
+    [Column(TypeName = "datetime2")]
+    public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
 
-    [InverseProperty("User")]
-    public virtual ICollection<LeaseApplication> LeaseApplications { get; set; } = new List<LeaseApplication>();
-
-    [InverseProperty("Tenant")]
     public virtual ICollection<MaintenanceRequest> MaintenanceRequestsAsTenant { get; set; } = new List<MaintenanceRequest>();
-
-    [InverseProperty("AssignedStaff")]
-    public virtual ICollection<MaintenanceRequest> MaintenanceRequestsAsStaff { get; set; } = new List<MaintenanceRequest>();
-
-    [InverseProperty("User")]
     public virtual ICollection<Notification> Notifications { get; set; } = new List<Notification>();
-
-    [InverseProperty("User")]
-    public virtual ICollection<Feedback> Feedbacks { get; set; } = new List<Feedback>();
-
-    [InverseProperty("User")]
-    public virtual ICollection<Log> Logs { get; set; } = new List<Log>();
-
-    [InverseProperty("User")]
-    public virtual ICollection<Document> Documents { get; set; } = new List<Document>();
 }

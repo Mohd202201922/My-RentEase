@@ -1,15 +1,17 @@
+using PropertyLeasing.API.Models;
+using System;
 using System.Collections.Generic;
 using System.ComponentModel.DataAnnotations;
 using System.ComponentModel.DataAnnotations.Schema;
 
-namespace PropertyLeasing.API.Models;
+namespace RentEase.API.Models;
 
-[Table("Property")]
+[Table("Properties")]
 public partial class Property
 {
     [Key]
-    [Column("PropertyID")]
-    public int PropertyId { get; set; }
+    [Column("PropertyId")]
+    public Guid PropertyId { get; set; } = Guid.NewGuid();
 
     [Required]
     [StringLength(100)]
@@ -25,13 +27,14 @@ public partial class Property
     [StringLength(50)]
     public string? City { get; set; }
 
-    // Residential / Commercial
     [StringLength(50)]
     public string? PropertyType { get; set; }
 
     [StringLength(100)]
     public string? ImgPath { get; set; }
 
-    [InverseProperty("Property")]
+    [Column(TypeName = "datetime2")]
+    public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
+
     public virtual ICollection<Unit> Units { get; set; } = new List<Unit>();
 }
