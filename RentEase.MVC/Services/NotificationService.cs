@@ -1,4 +1,4 @@
-using PropertyLeasing.API.Models;
+using RentEase.API.Models;
 
 namespace PropertyLeasing.MVC.Services;
 

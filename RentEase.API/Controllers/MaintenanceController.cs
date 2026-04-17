@@ -4,7 +4,7 @@ using Microsoft.AspNetCore.SignalR;
 using Microsoft.EntityFrameworkCore;
 using PropertyLeasing.API.DTOs;
 using PropertyLeasing.API.Hubs;
-using PropertyLeasing.API.Models;
+using RentEase.API.Models;
 using System.Security.Claims;
 
 namespace PropertyLeasing.API.Controllers;

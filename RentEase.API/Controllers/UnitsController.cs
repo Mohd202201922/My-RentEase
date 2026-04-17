@@ -2,7 +2,7 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using PropertyLeasing.API.DTOs;
-using PropertyLeasing.API.Models;
+using RentEase.API.Models;
 
 namespace PropertyLeasing.API.Controllers;
 

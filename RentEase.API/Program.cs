@@ -6,7 +6,7 @@ using Microsoft.IdentityModel.Tokens;
 using Microsoft.OpenApi.Models;
 using PropertyLeasing.API.Data;
 using PropertyLeasing.API.Hubs;
-using PropertyLeasing.API.Models;
+using RentEase.API.Models;
 using PropertyLeasing.API.Services;
 
 var builder = WebApplication.CreateBuilder(args);

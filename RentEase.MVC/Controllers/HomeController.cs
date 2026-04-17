@@ -1,6 +1,6 @@
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
-using PropertyLeasing.API.Models;
+using RentEase.API.Models;
 using PropertyLeasing.MVC.Services;
 using PropertyLeasing.MVC.ViewModels;
 

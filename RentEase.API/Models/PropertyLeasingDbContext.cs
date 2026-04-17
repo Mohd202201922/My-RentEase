@@ -1,5 +1,5 @@
 ﻿using Microsoft.EntityFrameworkCore;
-using PropertyLeasing.API.Models;
+using RentEase.API.Models;
 using System;
 
 namespace RentEase.API.Models

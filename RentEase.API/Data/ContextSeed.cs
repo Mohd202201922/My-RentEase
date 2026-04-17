@@ -1,6 +1,6 @@
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
-using PropertyLeasing.API.Models;
+using RentEase.API.Models;
 
 namespace PropertyLeasing.API.Data;
 

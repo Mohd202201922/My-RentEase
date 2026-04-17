@@ -3,7 +3,7 @@ using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using PropertyLeasing.API.Data;
-using PropertyLeasing.API.Models;
+using RentEase.API.Models;
 using PropertyLeasing.MVC.ViewModels;
 
 namespace PropertyLeasing.MVC.Controllers;

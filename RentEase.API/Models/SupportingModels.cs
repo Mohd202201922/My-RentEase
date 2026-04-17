@@ -2,7 +2,7 @@ using System;
 using System.ComponentModel.DataAnnotations;
 using System.ComponentModel.DataAnnotations.Schema;
 
-namespace PropertyLeasing.API.Models;
+namespace RentEase.API.Models;
 
 [Table("Notification")]
 public partial class Notification

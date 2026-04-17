@@ -1,4 +1,4 @@
-using PropertyLeasing.API.Models;
+using RentEase.API.Models;
 using System;
 using System.Collections.Generic;
 using System.ComponentModel.DataAnnotations;
