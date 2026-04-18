@@ -1,10 +1,11 @@
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
+using RentEase.API.Data;
 using RentEase.API.Models;
-using PropertyLeasing.MVC.ViewModels;
+using RentEase.MVC.ViewModels;
 
-namespace PropertyLeasing.MVC.Controllers;
+namespace RentEase.MVC.Controllers;
 
 public class PropertiesController : Controller
 {
@@ -55,8 +56,6 @@ public class PropertiesController : Controller
         var query = _db.Units
             .Include(u => u.Property)
             .Include(u => u.Feedbacks)
-            .Include(u => u.UnitAmenities)
-                .ThenInclude(ua => ua.Amenity)
             .Where(u => u.PropertyId == propertyId)
             .AsQueryable();
 
@@ -66,31 +65,30 @@ public class PropertiesController : Controller
         if (maxRent.HasValue)
             query = query.Where(u => u.MonthlyRent <= maxRent);
 
-        var units = await query.ToListAsync();
+        var units = await query
+            .Select(u => new UnitListViewModel
+            {
+                UnitId             = u.UnitId,
+                UnitNumber         = u.UnitNumber,
+                UnitType           = u.UnitType,
+                Sizesqm            = u.Sizesqm,
+                MonthlyRent        = u.MonthlyRent,
+                Amenities          = u.Amenities,
+                AvailabilityStatus = u.AvailabilityStatus,
+                ImgPath            = u.ImgPath,
+                PropertyName       = u.Property.Name,
+                PropertyAddress    = u.Property.Address,
+                PropertyId         = u.PropertyId,
+                AverageRating      = u.Feedbacks.Any() ? u.Feedbacks.Average(f => (double)(f.Rating ?? 0)) : 0,
+                FeedbackCount      = u.Feedbacks.Count(f => f.IsVisible)
+            })
+            .ToListAsync();
 
         ViewBag.PropertyName = property.Name;
         ViewBag.PropertyId   = propertyId;
         ViewBag.UnitType     = unitType;
         ViewBag.MaxRent      = maxRent;
-        return View(units.Select(u => new UnitListViewModel
-        {
-            UnitId = u.UnitId,
-            UnitNumber = u.UnitNumber,
-            UnitType = u.UnitType,
-            Sizesqm = u.Sizesqm,
-            MonthlyRent = u.MonthlyRent,
-            Amenities = string.Join(", ", u.UnitAmenities
-                .Where(ua => ua.IsActive && ua.Amenity.IsActive)
-                .OrderBy(ua => ua.Amenity.AmenityName)
-                .Select(ua => ua.Amenity.AmenityName)),
-            AvailabilityStatus = u.AvailabilityStatus,
-            ImgPath = u.ImgPath,
-            PropertyName = u.Property.Name,
-            PropertyAddress = u.Property.Address,
-            PropertyId = u.PropertyId,
-            AverageRating = u.Feedbacks.Any() ? u.Feedbacks.Average(f => (double)(f.Rating ?? 0)) : 0,
-            FeedbackCount = u.Feedbacks.Count(f => f.IsVisible)
-        }).ToList());
+        return View(units);
     }
 
     // GET /Properties/UnitDetails/{id}
@@ -100,15 +98,9 @@ public class PropertiesController : Controller
             .Include(u => u.Property)
             .Include(u => u.Feedbacks.Where(f => f.IsVisible))
                 .ThenInclude(f => f.User)
-            .Include(u => u.UnitAmenities)
-                .ThenInclude(ua => ua.Amenity)
             .FirstOrDefaultAsync(u => u.UnitId == id);
 
         if (unit == null) return NotFound();
-        unit.Amenities = string.Join(", ", unit.UnitAmenities
-            .Where(ua => ua.IsActive && ua.Amenity.IsActive)
-            .OrderBy(ua => ua.Amenity.AmenityName)
-            .Select(ua => ua.Amenity.AmenityName));
         return View(unit);
     }
 

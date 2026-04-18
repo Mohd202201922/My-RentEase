@@ -1,50 +1,60 @@
-using RentEase.API.Models;
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.ComponentModel.DataAnnotations;
 using System.ComponentModel.DataAnnotations.Schema;
+using Microsoft.EntityFrameworkCore;
 
 namespace RentEase.API.Models;
 
-[Table("Units")]
+[Table("Unit")]
 public partial class Unit
 {
     [Key]
-    [Column("UnitId")]
-    public Guid UnitId { get; set; } = Guid.NewGuid();
+    [Column("UnitID")]
+    public int UnitId { get; set; }
 
-    [Column("PropertyId")]
-    public Guid PropertyId { get; set; }
+    [Column("PropertyID")]
+    public int PropertyId { get; set; }
 
-    [Required]
     [StringLength(50)]
     public string UnitNumber { get; set; } = null!;
 
-    [Required]
     [StringLength(50)]
-    public string Type { get; set; } = null!;          // matches SQL
+    public string? UnitType { get; set; }
 
-    [Column(TypeName = "decimal(10,2)")]
-    public decimal? Size { get; set; }
+    public double? Sizesqm { get; set; }
 
-    [Column(TypeName = "decimal(18,2)")]
-    public decimal RentAmount { get; set; }
+    [Column(TypeName = "decimal(10, 2)")]
+    public decimal? MonthlyRent { get; set; }
 
-    [StringLength(250)]
-    public string? Amenities { get; set; }             // string column in SQL
-
-    [Required]
-    [StringLength(20)]
-    public string AvailabilityStatus { get; set; } = null!;
+    [StringLength(50)]
+    public string? AvailabilityStatus { get; set; }
 
     [StringLength(100)]
     public string? ImgPath { get; set; }
 
-    [Column(TypeName = "datetime2")]
-    public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
+    [NotMapped]
+    public string? Amenities
+    {
+        get
+        {
+            return string.Join(", ", UnitAmenities?.Select(ua => ua.Amenity?.AmenityName ?? "") ?? Array.Empty<string>());
+        }
+    }
+
+    [InverseProperty("Unit")]
+    public virtual ICollection<Feedback> Feedbacks { get; set; } = new List<Feedback>();
+
+    [InverseProperty("Unit")]
+    public virtual ICollection<LeaseApplication> LeaseApplications { get; set; } = new List<LeaseApplication>();
+
+    [InverseProperty("Unit")]
+    public virtual ICollection<MaintenanceRequest> MaintenanceRequests { get; set; } = new List<MaintenanceRequest>();
 
     [ForeignKey("PropertyId")]
+    [InverseProperty("Units")]
     public virtual Property Property { get; set; } = null!;
 
-    public virtual ICollection<MaintenanceRequest> MaintenanceRequests { get; set; } = new List<MaintenanceRequest>();
+    [InverseProperty("Unit")]
+    public virtual ICollection<UnitAmenity> UnitAmenities { get; set; } = new List<UnitAmenity>();
 }

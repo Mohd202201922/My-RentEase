@@ -1,6 +1,7 @@
+using RentEase.API.Data;
 using RentEase.API.Models;
 
-namespace PropertyLeasing.MVC.Services;
+namespace RentEase.MVC.Services;
 
 public class NotificationService
 {

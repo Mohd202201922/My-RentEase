@@ -1,6 +1,8 @@
-using System;
+﻿using System;
+using System.Collections.Generic;
 using System.ComponentModel.DataAnnotations;
 using System.ComponentModel.DataAnnotations.Schema;
+using Microsoft.EntityFrameworkCore;
 
 namespace RentEase.API.Models;
 
@@ -24,12 +26,12 @@ public partial class MaintenanceStatusHistory
     public string? Notes { get; set; }
 
     [Column(TypeName = "datetime")]
-    public DateTime ChangedAt { get; set; } = DateTime.Now;
+    public DateTime ChangedAt { get; set; }
 
     [Column("ChangedByUserID")]
     public int? ChangedByUserId { get; set; }
 
     [ForeignKey("RequestId")]
-    [InverseProperty("StatusHistory")]
-    public virtual MaintenanceRequest MaintenanceRequest { get; set; } = null!;
+    [InverseProperty("MaintenanceStatusHistories")]
+    public virtual MaintenanceRequest Request { get; set; } = null!;
 }

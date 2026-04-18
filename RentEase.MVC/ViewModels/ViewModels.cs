@@ -1,6 +1,6 @@
 using System.ComponentModel.DataAnnotations;
 
-namespace PropertyLeasing.MVC.ViewModels;
+namespace RentEase.MVC.ViewModels;
 
 // ── Auth ──────────────────────────────────────────────
 public class LoginViewModel

@@ -1,10 +1,11 @@
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
-using PropertyLeasing.API.DTOs;
+using RentEase.API.Data;
+using RentEase.API.DTOs;
 using RentEase.API.Models;
 
-namespace PropertyLeasing.API.Controllers;
+namespace RentEase.API.Controllers;
 
 [ApiController]
 [Route("api/[controller]")]
@@ -23,26 +24,22 @@ public class UnitsController : ControllerBase
     {
         var units = await _db.Units
             .Include(u => u.Property)
-            .Include(u => u.UnitAmenities)
-                .ThenInclude(ua => ua.Amenity)
             .Where(u => u.AvailabilityStatus == "Available")
+            .Select(u => new UnitDto
+            {
+                UnitId             = u.UnitId,
+                UnitNumber         = u.UnitNumber,
+                UnitType           = u.UnitType,
+                Sizesqm            = u.Sizesqm,
+                MonthlyRent        = u.MonthlyRent,
+                Amenities          = u.Amenities,
+                AvailabilityStatus = u.AvailabilityStatus,
+                PropertyName       = u.Property.Name,
+                PropertyAddress    = u.Property.Address
+            })
             .ToListAsync();
 
-        return Ok(units.Select(u => new UnitDto
-        {
-            UnitId = u.UnitId,
-            UnitNumber = u.UnitNumber,
-            UnitType = u.UnitType,
-            Sizesqm = u.Sizesqm,
-            MonthlyRent = u.MonthlyRent,
-            Amenities = string.Join(", ", u.UnitAmenities
-                .Where(ua => ua.IsActive && ua.Amenity.IsActive)
-                .OrderBy(ua => ua.Amenity.AmenityName)
-                .Select(ua => ua.Amenity.AmenityName)),
-            AvailabilityStatus = u.AvailabilityStatus,
-            PropertyName = u.Property.Name,
-            PropertyAddress = u.Property.Address
-        }));
+        return Ok(units);
     }
 
     // GET api/units/{id} — public, single unit details
@@ -51,26 +48,22 @@ public class UnitsController : ControllerBase
     {
         var unit = await _db.Units
             .Include(u => u.Property)
-            .Include(u => u.UnitAmenities)
-                .ThenInclude(ua => ua.Amenity)
             .Where(u => u.UnitId == id)
+            .Select(u => new UnitDto
+            {
+                UnitId             = u.UnitId,
+                UnitNumber         = u.UnitNumber,
+                UnitType           = u.UnitType,
+                Sizesqm            = u.Sizesqm,
+                MonthlyRent        = u.MonthlyRent,
+                Amenities          = u.Amenities,
+                AvailabilityStatus = u.AvailabilityStatus,
+                PropertyName       = u.Property.Name,
+                PropertyAddress    = u.Property.Address
+            })
             .FirstOrDefaultAsync();
 
         if (unit == null) return NotFound(new { message = "Unit not found." });
-        return Ok(new UnitDto
-        {
-            UnitId = unit.UnitId,
-            UnitNumber = unit.UnitNumber,
-            UnitType = unit.UnitType,
-            Sizesqm = unit.Sizesqm,
-            MonthlyRent = unit.MonthlyRent,
-            Amenities = string.Join(", ", unit.UnitAmenities
-                .Where(ua => ua.IsActive && ua.Amenity.IsActive)
-                .OrderBy(ua => ua.Amenity.AmenityName)
-                .Select(ua => ua.Amenity.AmenityName)),
-            AvailabilityStatus = unit.AvailabilityStatus,
-            PropertyName = unit.Property.Name,
-            PropertyAddress = unit.Property.Address
-        });
+        return Ok(unit);
     }
 }

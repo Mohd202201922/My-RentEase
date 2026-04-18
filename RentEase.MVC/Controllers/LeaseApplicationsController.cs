@@ -2,12 +2,12 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
-using PropertyLeasing.API.Data;
+using RentEase.API.Data;
 using RentEase.API.Models;
-using PropertyLeasing.MVC.Services;
-using PropertyLeasing.MVC.ViewModels;
+using RentEase.MVC.Services;
+using RentEase.MVC.ViewModels;
 
-namespace PropertyLeasing.MVC.Controllers;
+namespace RentEase.MVC.Controllers;
 
 [Authorize]
 public class LeaseApplicationsController : Controller
@@ -43,8 +43,6 @@ public class LeaseApplicationsController : Controller
         var query = _db.LeaseApplications
             .Include(a => a.Unit).ThenInclude(u => u.Property)
             .Include(a => a.User)
-            .Include(a => a.StatusHistory)
-                .ThenInclude(h => h.Status)
             .AsQueryable();
 
         // Tenants only see their own applications
@@ -52,7 +50,7 @@ public class LeaseApplicationsController : Controller
             query = query.Where(a => a.UserId == appUser.UserId);
 
         if (!string.IsNullOrWhiteSpace(status))
-            query = query.Where(a => a.StatusHistory.Any(h => h.IsCurrent && h.Status.StatusName == status));
+            query = query.Where(a => a.Status == status);
 
         var apps = await query
             .OrderByDescending(a => a.CreatedAt)
@@ -64,10 +62,7 @@ public class LeaseApplicationsController : Controller
                 TenantName         = a.User.FullName,
                 RequestedStartDate = a.RequestedStartDate,
                 RequestedEndDate   = a.RequestedEndDate,
-                Status             = a.StatusHistory
-                    .Where(h => h.IsCurrent)
-                    .Select(h => h.Status.StatusName)
-                    .FirstOrDefault() ?? "Unknown",
+                Status             = a.Status,
                 Notes              = a.Notes,
                 CreatedAt          = a.CreatedAt
             })
@@ -112,14 +107,8 @@ public class LeaseApplicationsController : Controller
 
         // Check no pending/approved application already exists for this unit
         var existing = await _db.LeaseApplications
-            .Include(a => a.StatusHistory)
-                .ThenInclude(h => h.Status)
-            .AnyAsync(a => a.UnitId == model.UnitId
-                && a.UserId == appUser.UserId
-                && a.StatusHistory.Any(h => h.IsCurrent
-                    && (h.Status.StatusName == "Pending"
-                        || h.Status.StatusName == "Screening"
-                        || h.Status.StatusName == "Approved")));
+            .AnyAsync(a => a.UnitId == model.UnitId && a.UserId == appUser.UserId
+                        && (a.Status == "Pending" || a.Status == "Screening" || a.Status == "Approved"));
         if (existing)
         {
             TempData["Error"] = "You already have an active application for this unit.";
@@ -133,29 +122,11 @@ public class LeaseApplicationsController : Controller
             RequestedStartDate = model.RequestedStartDate,
             RequestedEndDate   = model.RequestedEndDate,
             Notes              = model.Notes,
+            Status             = "Pending",
             CreatedAt          = DateTime.Now
         };
 
         _db.LeaseApplications.Add(application);
-        await _db.SaveChangesAsync();
-
-        var pendingStatusId = await _db.LeaseApplicationStatuses
-            .Where(s => s.StatusName == "Pending")
-            .Select(s => (int?)s.StatusId)
-            .FirstOrDefaultAsync();
-        if (!pendingStatusId.HasValue)
-        {
-            TempData["Error"] = "Lease application statuses are missing from the database.";
-            return RedirectToAction("Index");
-        }
-
-        _db.LeaseApplicationStatusHistories.Add(new LeaseApplicationStatusHistory
-        {
-            ApplicationId = application.ApplicationId,
-            StatusId = pendingStatusId.Value,
-            ChangedAt = DateTime.Now,
-            IsCurrent = true
-        });
         await _db.SaveChangesAsync();
 
         // Notify tenant
@@ -183,35 +154,31 @@ public class LeaseApplicationsController : Controller
         var application = await _db.LeaseApplications
             .Include(a => a.Unit)
             .Include(a => a.User)
-            .Include(a => a.StatusHistory)
             .FirstOrDefaultAsync(a => a.ApplicationId == applicationId);
 
         if (application == null) return NotFound();
-        var appUser = await GetAppUserAsync();
-        var statusRow = await _db.LeaseApplicationStatuses.FirstOrDefaultAsync(s => s.StatusName == newStatus);
-        if (statusRow == null)
-        {
-            TempData["Error"] = $"Unknown lease application status: {newStatus}.";
-            return RedirectToAction("Index");
-        }
 
-        foreach (var history in application.StatusHistory.Where(h => h.IsCurrent))
-        {
-            history.IsCurrent = false;
-        }
-
-        _db.LeaseApplicationStatusHistories.Add(new LeaseApplicationStatusHistory
-        {
-            ApplicationId = application.ApplicationId,
-            StatusId = statusRow.StatusId,
-            ChangedAt = DateTime.Now,
-            ChangedByUserId = appUser?.UserId,
-            IsCurrent = true
-        });
+        application.Status = newStatus;
 
         // If approved → create Lease and mark unit as Occupied
         if (newStatus == "Approved")
         {
+            // Get or create the "Active" lease status
+            var activeStatus = await _db.LeaseStatuses
+                .FirstOrDefaultAsync(s => s.StatusName == "Active");
+            if (activeStatus == null)
+            {
+                activeStatus = new LeaseStatus
+                {
+                    StatusName = "Active",
+                    IsActive = true,
+                    IsTerminal = false,
+                    CreatedAt = DateTime.Now
+                };
+                _db.LeaseStatuses.Add(activeStatus);
+                await _db.SaveChangesAsync();
+            }
+
             var lease = new Lease
             {
                 ApplicationId   = application.ApplicationId,
@@ -224,22 +191,15 @@ public class LeaseApplicationsController : Controller
             _db.Leases.Add(lease);
             await _db.SaveChangesAsync();
 
-            var activeLeaseStatusId = await _db.LeaseStatuses
-                .Where(s => s.StatusName == "Active")
-                .Select(s => (int?)s.StatusId)
-                .FirstOrDefaultAsync();
-            if (activeLeaseStatusId.HasValue)
+            // Create lease status history to set it to Active
+            _db.LeaseStatusHistories.Add(new LeaseStatusHistory
             {
-                _db.LeaseStatusHistories.Add(new LeaseStatusHistory
-                {
-                    LeaseId = lease.LeaseId,
-                    StatusId = activeLeaseStatusId.Value,
-                    ChangedAt = DateTime.Now,
-                    EffectiveDate = lease.LeaseStartDate,
-                    ChangedByUserId = appUser?.UserId,
-                    IsCurrent = true
-                });
-            }
+                LeaseId = lease.LeaseId,
+                StatusId = activeStatus.StatusId,
+                ChangedAt = DateTime.Now,
+                EffectiveDate = DateTime.Now,
+                IsCurrent = true
+            });
 
             application.Unit.AvailabilityStatus = "Occupied";
 

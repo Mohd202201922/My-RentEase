@@ -1,48 +1,64 @@
-using RentEase.API.Models;
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.ComponentModel.DataAnnotations;
 using System.ComponentModel.DataAnnotations.Schema;
+using Microsoft.EntityFrameworkCore;
 
 namespace RentEase.API.Models;
 
-[Table("Users")]
+[Table("User")]
+[Index("Email", Name = "UQ__User__A9D105342EFAB69E", IsUnique = true)]
 public partial class User
 {
     [Key]
-    [Column("Id")]
-    public Guid Id { get; set; } = Guid.NewGuid();
+    [Column("UserID")]
+    public int UserId { get; set; }
 
-    [Required]
-    [StringLength(256)]
+    [StringLength(100)]
+    public string FullName { get; set; } = null!;
+
+    [StringLength(100)]
     public string Email { get; set; } = null!;
 
-    [Required]
-    public string PasswordHash { get; set; } = null!;
-
-    [Required]
-    [StringLength(100)]
-    public string FirstName { get; set; } = null!;
-
-    [Required]
-    [StringLength(100)]
-    public string LastName { get; set; } = null!;
-
     [StringLength(20)]
-    public string? PhoneNumber { get; set; }
+    public string? Phone { get; set; }
 
-    [Required]
-    [StringLength(20)]
-    public string Role { get; set; } = "Tenant";
+    [StringLength(50)]
+    public string Role { get; set; } = null!;
 
-    public bool IsActive { get; set; } = true;
+    [StringLength(200)]
+    public string? SkillProfile { get; set; }
 
-    [StringLength(20)]
+    [StringLength(50)]
     public string? AvailabilityStatus { get; set; }
 
-    [Column(TypeName = "datetime2")]
-    public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
+    [StringLength(450)]
+    public string? IdentityUserId { get; set; }
 
-    public virtual ICollection<MaintenanceRequest> MaintenanceRequestsAsTenant { get; set; } = new List<MaintenanceRequest>();
+    [InverseProperty("User")]
+    public virtual ICollection<Document> Documents { get; set; } = new List<Document>();
+
+    [InverseProperty("User")]
+    public virtual ICollection<Feedback> Feedbacks { get; set; } = new List<Feedback>();
+
+    [InverseProperty("ChangedByUser")]
+    public virtual ICollection<LeaseApplicationStatusHistory> LeaseApplicationStatusHistories { get; set; } = new List<LeaseApplicationStatusHistory>();
+
+    [InverseProperty("User")]
+    public virtual ICollection<LeaseApplication> LeaseApplications { get; set; } = new List<LeaseApplication>();
+
+    [InverseProperty("ChangedByUser")]
+    public virtual ICollection<LeaseStatusHistory> LeaseStatusHistories { get; set; } = new List<LeaseStatusHistory>();
+
+    [InverseProperty("User")]
+    public virtual ICollection<Log> Logs { get; set; } = new List<Log>();
+
+    [InverseProperty("AssignedStaff")]
+    public virtual ICollection<MaintenanceRequest> MaintenanceRequestAssignedStaffs { get; set; } = new List<MaintenanceRequest>();
+
+    [InverseProperty("TenantUser")]
+    public virtual ICollection<MaintenanceRequest> MaintenanceRequestTenantUsers { get; set; } = new List<MaintenanceRequest>();
+
+    [InverseProperty("User")]
     public virtual ICollection<Notification> Notifications { get; set; } = new List<Notification>();
 }

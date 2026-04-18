@@ -2,11 +2,11 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
-using PropertyLeasing.API.Data;
+using RentEase.API.Data;
 using RentEase.API.Models;
-using PropertyLeasing.MVC.ViewModels;
+using RentEase.MVC.ViewModels;
 
-namespace PropertyLeasing.MVC.Controllers;
+namespace RentEase.MVC.Controllers;
 
 // ── Notifications ─────────────────────────────────────
 [Authorize]
@@ -99,32 +99,16 @@ public class DashboardController : Controller
     // GET /Dashboard
     public async Task<IActionResult> Index()
     {
-        var pendingApplicationIds = await _db.LeaseApplicationStatusHistories
-            .Where(h => h.IsCurrent && (h.Status.StatusName == "Pending" || h.Status.StatusName == "Screening"))
-            .Select(h => h.ApplicationId)
-            .Distinct()
-            .CountAsync();
-
-        var activeLeaseIds = await _db.LeaseStatusHistories
-            .Where(h => h.IsCurrent && h.Status.StatusName == "Active")
-            .Select(h => h.LeaseId)
-            .Distinct()
-            .CountAsync();
-
         var model = new DashboardViewModel
         {
             TotalProperties     = await _db.Properties.CountAsync(),
             TotalUnits          = await _db.Units.CountAsync(),
             AvailableUnits      = await _db.Units.CountAsync(u => u.AvailabilityStatus == "Available"),
             OccupiedUnits       = await _db.Units.CountAsync(u => u.AvailabilityStatus == "Occupied"),
-            PendingApplications = pendingApplicationIds,
-            ActiveLeases        = activeLeaseIds,
+            PendingApplications = await _db.LeaseApplications.CountAsync(a => a.Status == "Pending" || a.Status == "Screening"),
+            ActiveLeases        = await _db.Leases.CountAsync(l => l.LeaseStatusHistories.Any(h => h.IsCurrent && h.Status.StatusName == "Active")),
             OpenMaintenanceRequests = await _db.MaintenanceRequests
-                .Include(r => r.Status)
-                .CountAsync(r => r.Status != null
-                    && (r.Status.StatusName == "Submitted"
-                        || r.Status.StatusName == "Assigned"
-                        || r.Status.StatusName == "InProgress")),
+                .CountAsync(r => r.Status.StatusName == "Submitted" || r.Status.StatusName == "Assigned" || r.Status.StatusName == "InProgress"),
             OverduePayments     = await _db.PaymentRecords
                 .CountAsync(p => p.PaymentStatus == "Pending" && p.DueDate < DateTime.Now),
 
@@ -142,7 +126,7 @@ public class DashboardController : Controller
 
             RecentMaintenance = await _db.MaintenanceRequests
                 .Include(r => r.Unit).ThenInclude(u => u.Property)
-                .Include(r => r.Tenant)
+                .Include(r => r.TenantUser)
                 .Include(r => r.Status)
                 .OrderByDescending(r => r.SubmittedAt)
                 .Take(5)
@@ -150,12 +134,12 @@ public class DashboardController : Controller
                 {
                     RequestId    = r.RequestId,
                     Title        = r.Title,
-                    Status       = r.Status != null ? r.Status.StatusName : "Unknown",
+                    Status       = r.StatusName,
                     Priority     = r.Priority,
                     TicketNumber = r.TicketNumber,
                     UnitNumber   = r.Unit.UnitNumber,
                     PropertyName = r.Unit.Property.Name,
-                    TenantName   = r.Tenant.FullName,
+                    TenantName   = r.TenantUser.FullName,
                     SubmittedAt  = r.SubmittedAt
                 })
                 .ToListAsync(),
@@ -163,8 +147,6 @@ public class DashboardController : Controller
             RecentApplications = await _db.LeaseApplications
                 .Include(a => a.Unit).ThenInclude(u => u.Property)
                 .Include(a => a.User)
-                .Include(a => a.StatusHistory)
-                    .ThenInclude(h => h.Status)
                 .OrderByDescending(a => a.CreatedAt)
                 .Take(5)
                 .Select(a => new LeaseApplicationListViewModel
@@ -173,10 +155,7 @@ public class DashboardController : Controller
                     TenantName    = a.User.FullName,
                     UnitNumber    = a.Unit.UnitNumber,
                     PropertyName  = a.Unit.Property.Name,
-                    Status        = a.StatusHistory
-                        .Where(h => h.IsCurrent)
-                        .Select(h => h.Status.StatusName)
-                        .FirstOrDefault() ?? "Unknown",
+                    Status        = a.Status,
                     CreatedAt     = a.CreatedAt
                 })
                 .ToListAsync()

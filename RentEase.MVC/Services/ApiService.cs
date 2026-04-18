@@ -1,7 +1,7 @@
 using System.Text.Json;
-using PropertyLeasing.MVC.ViewModels;
+using RentEase.MVC.ViewModels;
 
-namespace PropertyLeasing.MVC.Services;
+namespace RentEase.MVC.Services;
 
 // This service is used ONLY for the public lookup page
 // It calls the Web API via HttpClient (no direct DB access)

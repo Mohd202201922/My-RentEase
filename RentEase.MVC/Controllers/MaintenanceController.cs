@@ -2,12 +2,12 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
-using PropertyLeasing.API.Data;
+using RentEase.API.Data;
 using RentEase.API.Models;
-using PropertyLeasing.MVC.Services;
-using PropertyLeasing.MVC.ViewModels;
+using RentEase.MVC.Services;
+using RentEase.MVC.ViewModels;
 
-namespace PropertyLeasing.MVC.Controllers;
+namespace RentEase.MVC.Controllers;
 
 [Authorize]
 public class MaintenanceController : Controller
@@ -43,7 +43,6 @@ public class MaintenanceController : Controller
             .Include(r => r.Unit).ThenInclude(u => u.Property)
             .Include(r => r.Tenant)
             .Include(r => r.AssignedStaff)
-            .Include(r => r.Status)
             .AsQueryable();
 
         // Tenants only see their own requests
@@ -55,7 +54,7 @@ public class MaintenanceController : Controller
             query = query.Where(r => r.AssignedStaffId == appUser.UserId);
 
         if (!string.IsNullOrWhiteSpace(status))
-            query = query.Where(r => r.Status != null && r.Status.StatusName == status);
+            query = query.Where(r => r.Status.StatusName == status);
 
         if (!string.IsNullOrWhiteSpace(priority))
             query = query.Where(r => r.Priority == priority);
@@ -69,7 +68,7 @@ public class MaintenanceController : Controller
                 Description   = r.Description,
                 RequestType   = r.RequestType,
                 Priority      = r.Priority,
-                Status        = r.Status != null ? r.Status.StatusName : "Unknown",
+                Status        = r.Status.StatusName,
                 TicketNumber  = r.TicketNumber,
                 UnitNumber    = r.Unit.UnitNumber,
                 PropertyName  = r.Unit.Property.Name,
@@ -103,10 +102,7 @@ public class MaintenanceController : Controller
             // Find tenant's active lease unit
             var lease = await _db.Leases
                 .Include(l => l.Application).ThenInclude(a => a.Unit).ThenInclude(u => u.Property)
-                .Include(l => l.StatusHistory)
-                    .ThenInclude(h => h.Status)
-                .Where(l => l.Application.UserId == appUser.UserId
-                    && l.StatusHistory.Any(h => h.IsCurrent && h.Status.StatusName == "Active"))
+                .Where(l => l.Application.UserId == appUser.UserId && l.Status == "Active")
                 .FirstOrDefaultAsync();
             unit = lease?.Application.Unit;
         }
@@ -131,15 +127,12 @@ public class MaintenanceController : Controller
         if (appUser == null) return Unauthorized();
 
         var ticketNumber = $"TKT-{DateTime.Now:yyyy}-{new Random().Next(1000, 9999)}";
-        var submittedStatusId = await _db.MaintenanceRequestStatuses
-            .Where(s => s.StatusName == "Submitted")
-            .Select(s => (int?)s.StatusId)
-            .FirstOrDefaultAsync();
-        if (!submittedStatusId.HasValue)
-        {
-            TempData["Error"] = "Maintenance statuses are missing from the database.";
-            return View(model);
-        }
+
+        // Get the "Submitted" status from the database
+        var submittedStatus = await _db.MaintenanceRequestStatuses
+            .FirstOrDefaultAsync(s => s.StatusName == "Submitted");
+        if (submittedStatus == null)
+            return BadRequest("Maintenance status 'Submitted' not configured in database.");
 
         var request = new MaintenanceRequest
         {
@@ -149,7 +142,7 @@ public class MaintenanceController : Controller
             Description  = model.Description,
             RequestType  = model.RequestType,
             Priority     = model.Priority,
-            StatusId     = submittedStatusId.Value,
+            StatusId     = submittedStatus.StatusId,
             TicketNumber = ticketNumber,
             SubmittedAt  = DateTime.Now
         };
@@ -172,9 +165,7 @@ public class MaintenanceController : Controller
     [Authorize(Roles = "PropertyManager,MaintenanceStaff")]
     public async Task<IActionResult> Update(int id)
     {
-        var request = await _db.MaintenanceRequests
-            .Include(r => r.Status)
-            .FirstOrDefaultAsync(r => r.RequestId == id);
+        var request = await _db.MaintenanceRequests.FindAsync(id);
         if (request == null) return NotFound();
 
         var staffList = await _db.Users
@@ -186,8 +177,8 @@ public class MaintenanceController : Controller
         {
             RequestId     = request.RequestId,
             Title         = request.Title,
-            CurrentStatus = request.Status?.StatusName ?? "Unknown",
-            NewStatus     = request.Status?.StatusName ?? "Unknown",
+            CurrentStatus = request.StatusName,
+            NewStatus     = request.StatusName,
             StaffList     = staffList
         });
     }
@@ -200,32 +191,28 @@ public class MaintenanceController : Controller
     {
         var request = await _db.MaintenanceRequests
             .Include(r => r.Tenant)
-            .Include(r => r.Status)
             .FirstOrDefaultAsync(r => r.RequestId == model.RequestId);
 
         if (request == null) return NotFound();
 
         var appUser = await GetAppUserAsync();
-        var newStatus = await _db.MaintenanceRequestStatuses
-            .FirstOrDefaultAsync(s => s.StatusName == model.NewStatus);
-        if (newStatus == null)
-        {
-            TempData["Error"] = $"Unknown maintenance status: {model.NewStatus}.";
-            return RedirectToAction("Update", new { id = model.RequestId });
-        }
 
         // Save status history
         _db.MaintenanceStatusHistories.Add(new MaintenanceStatusHistory
         {
             RequestId       = request.RequestId,
-            OldStatus       = request.Status?.StatusName,
+            OldStatus       = request.StatusName,
             NewStatus       = model.NewStatus,
             Notes           = model.Notes,
             ChangedAt       = DateTime.Now,
             ChangedByUserId = appUser?.UserId
         });
 
-        request.StatusId = newStatus.StatusId;
+        // Get the new status from database
+        var newStatus = await _db.MaintenanceRequestStatuses
+            .FirstOrDefaultAsync(s => s.StatusName == model.NewStatus);
+        if (newStatus != null)
+            request.StatusId = newStatus.StatusId;
 
         if (model.AssignedStaffId.HasValue)
             request.AssignedStaffId = model.AssignedStaffId;

@@ -1,4 +1,4 @@
-namespace PropertyLeasing.API.DTOs;
+namespace RentEase.API.DTOs;
 
 // ── Auth ──────────────────────────────────────────────
 public class LoginDto

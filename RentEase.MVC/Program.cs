@@ -1,8 +1,8 @@
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
-using PropertyLeasing.API.Data;
+using RentEase.API.Data;
 using RentEase.API.Models;
-using PropertyLeasing.MVC.Services;
+using RentEase.MVC.Services;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -47,6 +47,11 @@ builder.Services.AddScoped<NotificationService>();
 
 var app = builder.Build();
 
+if (app.Environment.IsDevelopment())
+{
+    await EnsureDevelopmentDatabasesAsync(app.Services, app.Environment);
+}
+
 // ── Middleware ────────────────────────────────────────
 if (!app.Environment.IsDevelopment())
 {
@@ -75,3 +80,15 @@ using (var scope = app.Services.CreateScope())
 }
 
 app.Run();
+
+static async Task EnsureDevelopmentDatabasesAsync(IServiceProvider services, IWebHostEnvironment environment)
+{
+    using var scope = services.CreateScope();
+    var scopedServices = scope.ServiceProvider;
+
+    var identityDb = scopedServices.GetRequiredService<AppIdentityDbContext>();
+    await identityDb.Database.EnsureCreatedAsync();
+
+    var appDb = scopedServices.GetRequiredService<PropertyLeasingDbContext>();
+    await appDb.Database.EnsureCreatedAsync();
+}

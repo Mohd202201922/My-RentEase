@@ -2,7 +2,7 @@ using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 using RentEase.API.Models;
 
-namespace PropertyLeasing.API.Data;
+namespace RentEase.API.Data;
 
 public static class ContextSeed
 {

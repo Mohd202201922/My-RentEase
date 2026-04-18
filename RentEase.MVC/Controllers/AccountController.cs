@@ -2,11 +2,11 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
-using PropertyLeasing.API.Data;
+using RentEase.API.Data;
 using RentEase.API.Models;
-using PropertyLeasing.MVC.ViewModels;
+using RentEase.MVC.ViewModels;
 
-namespace PropertyLeasing.MVC.Controllers;
+namespace RentEase.MVC.Controllers;
 
 public class AccountController : Controller
 {

@@ -1,6 +1,8 @@
-using System;
+﻿using System;
+using System.Collections.Generic;
 using System.ComponentModel.DataAnnotations;
 using System.ComponentModel.DataAnnotations.Schema;
+using Microsoft.EntityFrameworkCore;
 
 namespace RentEase.API.Models;
 
@@ -14,10 +16,10 @@ public partial class PaymentRecord
     [Column("LeaseID")]
     public int LeaseId { get; set; }
 
-    [Column(TypeName = "decimal(10,2)")]
+    [Column(TypeName = "decimal(10, 2)")]
     public decimal AmountDue { get; set; }
 
-    [Column(TypeName = "decimal(10,2)")]
+    [Column(TypeName = "decimal(10, 2)")]
     public decimal? AmountPaid { get; set; }
 
     [Column(TypeName = "datetime")]
@@ -26,9 +28,8 @@ public partial class PaymentRecord
     [Column(TypeName = "datetime")]
     public DateTime? PaidDate { get; set; }
 
-    // Paid / Pending / Overdue / PartiallyPaid
     [StringLength(50)]
-    public string PaymentStatus { get; set; } = "Pending";
+    public string PaymentStatus { get; set; } = null!;
 
     [StringLength(250)]
     public string? Notes { get; set; }

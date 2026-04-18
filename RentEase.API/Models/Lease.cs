@@ -1,11 +1,13 @@
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.ComponentModel.DataAnnotations;
 using System.ComponentModel.DataAnnotations.Schema;
+using Microsoft.EntityFrameworkCore;
 
 namespace RentEase.API.Models;
 
 [Table("Lease")]
+[Index("ParentLeaseId", Name = "IX_Lease_ParentLeaseID")]
 public partial class Lease
 {
     [Key]
@@ -21,14 +23,14 @@ public partial class Lease
     [Column(TypeName = "datetime")]
     public DateTime LeaseEndDate { get; set; }
 
-    [Column(TypeName = "decimal(10,2)")]
+    [Column(TypeName = "decimal(10, 2)")]
     public decimal MonthlyRent { get; set; }
 
-    [Column(TypeName = "decimal(10,2)")]
+    [Column(TypeName = "decimal(10, 2)")]
     public decimal SecurityDeposit { get; set; }
 
     [Column(TypeName = "datetime")]
-    public DateTime CreatedAt { get; set; } = DateTime.Now;
+    public DateTime CreatedAt { get; set; }
 
     [Column("ParentLeaseID")]
     public int? ParentLeaseId { get; set; }
@@ -43,16 +45,19 @@ public partial class Lease
     [InverseProperty("Leases")]
     public virtual LeaseApplication Application { get; set; } = null!;
 
+    [InverseProperty("ParentLease")]
+    public virtual ICollection<Lease> InverseParentLease { get; set; } = new List<Lease>();
+
+    [InverseProperty("Lease")]
+    public virtual ICollection<LeaseStatusHistory> LeaseStatusHistories { get; set; } = new List<LeaseStatusHistory>();
+
+    [ForeignKey("ParentLeaseId")]
+    [InverseProperty("InverseParentLease")]
+    public virtual Lease? ParentLease { get; set; }
+
     [InverseProperty("Lease")]
     public virtual ICollection<PaymentRecord> PaymentRecords { get; set; } = new List<PaymentRecord>();
 
-    [ForeignKey("ParentLeaseId")]
-    [InverseProperty("ChildLeases")]
-    public virtual Lease? ParentLease { get; set; }
-
-    [InverseProperty("ParentLease")]
-    public virtual ICollection<Lease> ChildLeases { get; set; } = new List<Lease>();
-
-    [InverseProperty("Lease")]
-    public virtual ICollection<LeaseStatusHistory> StatusHistory { get; set; } = new List<LeaseStatusHistory>();
+    [NotMapped]
+    public string Status => LeaseStatusHistories.FirstOrDefault(h => h.IsCurrent)?.Status?.StatusName ?? "Unknown";
 }

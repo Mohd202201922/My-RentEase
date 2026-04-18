@@ -55,7 +55,7 @@
 <!-- Featured Properties -->
 <h3 class="mb-3"><i class="fa fa-star me-2 text-warning"></i>Featured Properties</h3>
 <div class="row g-3">
-    @foreach (var property in (ViewBag.FeaturedProperties as List<PropertyLeasing.API.Models.Property> ?? new()))
+    @foreach (var property in (ViewBag.FeaturedProperties as List<RentEase.API.Models.Property> ?? new()))
     {
         <div class="col-md-4">
             <div class="card h-100 shadow-sm">

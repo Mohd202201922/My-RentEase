@@ -2,7 +2,7 @@ using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Identity.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore;
 
-namespace PropertyLeasing.API.Data;
+namespace RentEase.API.Data;
 
 // Custom Identity User
 public class AppUser : IdentityUser

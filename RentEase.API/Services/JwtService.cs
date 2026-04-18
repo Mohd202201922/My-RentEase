@@ -2,9 +2,9 @@ using System.IdentityModel.Tokens.Jwt;
 using System.Security.Claims;
 using System.Text;
 using Microsoft.IdentityModel.Tokens;
-using PropertyLeasing.API.Data;
+using RentEase.API.Data;
 
-namespace PropertyLeasing.API.Services;
+namespace RentEase.API.Services;
 
 public class JwtService
 {

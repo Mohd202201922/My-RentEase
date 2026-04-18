@@ -1,10 +1,11 @@
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
+using RentEase.API.Data;
 using RentEase.API.Models;
-using PropertyLeasing.MVC.Services;
-using PropertyLeasing.MVC.ViewModels;
+using RentEase.MVC.Services;
+using RentEase.MVC.ViewModels;
 
-namespace PropertyLeasing.MVC.Controllers;
+namespace RentEase.MVC.Controllers;
 
 public class HomeController : Controller
 {

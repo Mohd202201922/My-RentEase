@@ -2,12 +2,13 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.SignalR;
 using Microsoft.EntityFrameworkCore;
-using PropertyLeasing.API.DTOs;
-using PropertyLeasing.API.Hubs;
+using RentEase.API.Data;
+using RentEase.API.DTOs;
+using RentEase.API.Hubs;
 using RentEase.API.Models;
 using System.Security.Claims;
 
-namespace PropertyLeasing.API.Controllers;
+namespace RentEase.API.Controllers;
 
 [ApiController]
 [Route("api/[controller]")]
@@ -39,12 +40,11 @@ public class MaintenanceController : ControllerBase
 
         var request = await _db.MaintenanceRequests
             .Include(r => r.Unit).ThenInclude(u => u.Property)
-            .Include(r => r.Tenant)
-            .Include(r => r.Status)
-            .Include(r => r.StatusHistory)
+            .Include(r => r.TenantUser)
+            .Include(r => r.MaintenanceStatusHistories)
             .FirstOrDefaultAsync(r =>
                 r.TicketNumber == ticket &&
-                r.Tenant.Phone == phone);
+                r.TenantUser.Phone == phone);
 
         if (request == null)
             return NotFound(new { message = "No request found with the provided ticket and phone." });
@@ -53,14 +53,14 @@ public class MaintenanceController : ControllerBase
         {
             TicketNumber = request.TicketNumber ?? "",
             Title        = request.Title,
-            Status       = request.Status?.StatusName ?? "Unknown",
+            Status       = request.Status?.StatusName ?? "",
             Priority     = request.Priority,
             RequestType  = request.RequestType ?? "",
             UnitNumber   = request.Unit.UnitNumber,
             PropertyName = request.Unit.Property.Name,
             SubmittedAt  = request.SubmittedAt,
             ResolvedAt   = request.ResolvedAt,
-            History      = request.StatusHistory
+            History      = request.MaintenanceStatusHistories
                 .OrderBy(h => h.ChangedAt)
                 .Select(h => new StatusHistoryDto
                 {
@@ -83,9 +83,9 @@ public class MaintenanceController : ControllerBase
     {
         var requests = await _db.MaintenanceRequests
             .Include(r => r.Unit).ThenInclude(u => u.Property)
-            .Include(r => r.Tenant)
-            .Include(r => r.AssignedStaff)
+            .Include(r => r.TenantUser)
             .Include(r => r.Status)
+            .Include(r => r.AssignedStaff)
             .OrderByDescending(r => r.SubmittedAt)
             .Select(r => new MaintenanceRequestDto
             {
@@ -97,7 +97,7 @@ public class MaintenanceController : ControllerBase
                 Status        = r.Status != null ? r.Status.StatusName : "Unknown",
                 TicketNumber  = r.TicketNumber,
                 UnitNumber    = r.Unit.UnitNumber,
-                TenantName    = r.Tenant.FullName,
+                TenantName    = r.TenantUser.FullName,
                 AssignedStaff = r.AssignedStaff != null ? r.AssignedStaff.FullName : null,
                 SubmittedAt   = r.SubmittedAt
             })
@@ -118,18 +118,14 @@ public class MaintenanceController : ControllerBase
         var user = await _db.Users.FirstOrDefaultAsync(u => u.IdentityUserId == identityId);
         if (user == null) return Unauthorized();
 
-        var submittedStatusId = await _db.MaintenanceRequestStatuses
-            .Where(s => s.StatusName == "Submitted")
-            .Select(s => (int?)s.StatusId)
-            .FirstOrDefaultAsync();
-
-        if (!submittedStatusId.HasValue)
-        {
-            return Problem("MaintenanceRequestStatus row 'Submitted' was not found in the database.");
-        }
-
         // Generate unique ticket number
         var ticketNumber = $"TKT-{DateTime.Now:yyyy}-{new Random().Next(1000, 9999)}";
+
+        // Get the "Submitted" status from database
+        var submittedStatus = await _db.MaintenanceRequestStatuses
+            .FirstOrDefaultAsync(s => s.StatusName == "Submitted");
+        if (submittedStatus == null)
+            return BadRequest(new { message = "Submitted status not found in system." });
 
         var request = new MaintenanceRequest
         {
@@ -139,7 +135,7 @@ public class MaintenanceController : ControllerBase
             Description  = dto.Description,
             RequestType  = dto.RequestType,
             Priority     = dto.Priority,
-            StatusId     = submittedStatusId.Value,
+            StatusId     = submittedStatus.StatusId,
             TicketNumber = ticketNumber,
             SubmittedAt  = DateTime.Now
         };
@@ -154,7 +150,7 @@ public class MaintenanceController : ControllerBase
             title        = request.Title,
             ticketNumber = request.TicketNumber,
             priority     = request.Priority,
-            status       = "Submitted",
+            status       = submittedStatus.StatusName,
             submittedAt  = request.SubmittedAt
         });
 
@@ -170,27 +166,25 @@ public class MaintenanceController : ControllerBase
     public async Task<IActionResult> UpdateStatus(int id, [FromBody] UpdateStatusDto dto)
     {
         var request = await _db.MaintenanceRequests
-            .Include(r => r.StatusHistory)
-            .Include(r => r.Status)
+            .Include(r => r.MaintenanceStatusHistories)
             .FirstOrDefaultAsync(r => r.RequestId == id);
 
         if (request == null) return NotFound();
 
         var identityId = User.FindFirstValue(ClaimTypes.NameIdentifier);
         var updatedBy  = await _db.Users.FirstOrDefaultAsync(u => u.IdentityUserId == identityId);
-        var newStatus = await _db.MaintenanceRequestStatuses
-            .FirstOrDefaultAsync(s => s.StatusName == dto.NewStatus);
-
-        if (newStatus == null)
-        {
-            return BadRequest(new { message = $"Unknown maintenance status '{dto.NewStatus}'." });
-        }
 
         // Save history
+        var oldStatusName = request.Status?.StatusName ?? "Unknown";
+        var newStatus = await _db.MaintenanceRequestStatuses
+            .FirstOrDefaultAsync(s => s.StatusName == dto.NewStatus);
+        if (newStatus == null)
+            return BadRequest(new { message = $"Status '{dto.NewStatus}' not found." });
+
         _db.MaintenanceStatusHistories.Add(new MaintenanceStatusHistory
         {
             RequestId       = request.RequestId,
-            OldStatus       = request.Status?.StatusName,
+            OldStatus       = oldStatusName,
             NewStatus       = dto.NewStatus,
             Notes           = dto.Notes,
             ChangedAt       = DateTime.Now,
@@ -212,7 +206,7 @@ public class MaintenanceController : ControllerBase
         await _hub.Clients.Group("Staff").SendAsync("StatusUpdated", new
         {
             requestId = request.RequestId,
-            newStatus = dto.NewStatus,
+            newStatus = request.Status?.StatusName ?? "Unknown",
             ticketNumber = request.TicketNumber
         });
 

@@ -1,26 +1,24 @@
-using RentEase.API.Models;
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.ComponentModel.DataAnnotations;
 using System.ComponentModel.DataAnnotations.Schema;
+using Microsoft.EntityFrameworkCore;
 
 namespace RentEase.API.Models;
 
-[Table("Properties")]
+[Table("Property")]
 public partial class Property
 {
     [Key]
-    [Column("PropertyId")]
-    public Guid PropertyId { get; set; } = Guid.NewGuid();
+    [Column("PropertyID")]
+    public int PropertyId { get; set; }
 
-    [Required]
     [StringLength(100)]
     public string Name { get; set; } = null!;
 
     [StringLength(250)]
     public string? Description { get; set; }
 
-    [Required]
     [StringLength(200)]
     public string Address { get; set; } = null!;
 
@@ -33,8 +31,6 @@ public partial class Property
     [StringLength(100)]
     public string? ImgPath { get; set; }
 
-    [Column(TypeName = "datetime2")]
-    public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
-
+    [InverseProperty("Property")]
     public virtual ICollection<Unit> Units { get; set; } = new List<Unit>();
 }

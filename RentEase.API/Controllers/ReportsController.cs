@@ -1,10 +1,11 @@
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
-using PropertyLeasing.API.DTOs;
+using RentEase.API.Data;
+using RentEase.API.DTOs;
 using RentEase.API.Models;
 
-namespace PropertyLeasing.API.Controllers;
+namespace RentEase.API.Controllers;
 
 [ApiController]
 [Route("api/[controller]")]
@@ -43,9 +44,9 @@ public class ReportsController : ControllerBase
     [HttpGet("maintenance")]
     public async Task<IActionResult> GetMaintenanceReport()
     {
-        var all = await _db.MaintenanceRequests.ToListAsync();
-        var statusLookup = await _db.MaintenanceRequestStatuses
-            .ToDictionaryAsync(s => s.StatusId, s => s.StatusName);
+        var all = await _db.MaintenanceRequests
+            .Include(r => r.Status)
+            .ToListAsync();
 
         var resolved = all.Where(r => r.ResolvedAt.HasValue).ToList();
         double avgHours = resolved.Any()
@@ -55,9 +56,9 @@ public class ReportsController : ControllerBase
         var report = new MaintenanceReportDto
         {
             TotalRequests      = all.Count,
-            PendingRequests    = all.Count(r => MatchesStatus(r.StatusId, statusLookup, "Submitted", "Assigned")),
-            InProgressRequests = all.Count(r => MatchesStatus(r.StatusId, statusLookup, "InProgress")),
-            ResolvedRequests   = all.Count(r => MatchesStatus(r.StatusId, statusLookup, "Resolved", "Closed")),
+            PendingRequests    = all.Count(r => r.Status?.StatusName == "Submitted" || r.Status?.StatusName == "Assigned"),
+            InProgressRequests = all.Count(r => r.Status?.StatusName == "InProgress"),
+            ResolvedRequests   = all.Count(r => r.Status?.StatusName == "Resolved" || r.Status?.StatusName == "Closed"),
             AvgResolutionHours = Math.Round(avgHours, 2)
         };
 
@@ -93,8 +94,6 @@ public class ReportsController : ControllerBase
         var apps = await _db.LeaseApplications
             .Include(a => a.Unit).ThenInclude(u => u.Property)
             .Include(a => a.User)
-            .Include(a => a.StatusHistory)
-                .ThenInclude(h => h.Status)
             .OrderByDescending(a => a.CreatedAt)
             .Select(a => new LeaseApplicationDto
             {
@@ -104,25 +103,12 @@ public class ReportsController : ControllerBase
                 PropertyName        = a.Unit.Property.Name,
                 RequestedStartDate  = a.RequestedStartDate,
                 RequestedEndDate    = a.RequestedEndDate,
-                Status              = a.StatusHistory
-                    .Where(h => h.IsCurrent)
-                    .Select(h => h.Status.StatusName)
-                    .FirstOrDefault() ?? "Unknown",
+                Status              = a.Status,
                 Notes               = a.Notes,
                 CreatedAt           = a.CreatedAt
             })
             .ToListAsync();
 
         return Ok(apps);
-    }
-
-    private static bool MatchesStatus(int? statusId, IReadOnlyDictionary<int, string> statusLookup, params string[] names)
-    {
-        if (!statusId.HasValue || !statusLookup.TryGetValue(statusId.Value, out var statusName))
-        {
-            return false;
-        }
-
-        return names.Contains(statusName, StringComparer.OrdinalIgnoreCase);
     }
 }

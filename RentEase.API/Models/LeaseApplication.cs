@@ -1,7 +1,8 @@
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.ComponentModel.DataAnnotations;
 using System.ComponentModel.DataAnnotations.Schema;
+using Microsoft.EntityFrameworkCore;
 
 namespace RentEase.API.Models;
 
@@ -28,7 +29,19 @@ public partial class LeaseApplication
     public string? Notes { get; set; }
 
     [Column(TypeName = "datetime")]
-    public DateTime CreatedAt { get; set; } = DateTime.Now;
+    public DateTime CreatedAt { get; set; }
+
+    [StringLength(50)]
+    public string? Status { get; set; }
+
+    [InverseProperty("Application")]
+    public virtual ICollection<Document> Documents { get; set; } = new List<Document>();
+
+    [InverseProperty("Application")]
+    public virtual ICollection<LeaseApplicationStatusHistory> LeaseApplicationStatusHistories { get; set; } = new List<LeaseApplicationStatusHistory>();
+
+    [InverseProperty("Application")]
+    public virtual ICollection<Lease> Leases { get; set; } = new List<Lease>();
 
     [ForeignKey("UnitId")]
     [InverseProperty("LeaseApplications")]
@@ -37,13 +50,4 @@ public partial class LeaseApplication
     [ForeignKey("UserId")]
     [InverseProperty("LeaseApplications")]
     public virtual User User { get; set; } = null!;
-
-    [InverseProperty("Application")]
-    public virtual ICollection<Lease> Leases { get; set; } = new List<Lease>();
-
-    [InverseProperty("Application")]
-    public virtual ICollection<Document> Documents { get; set; } = new List<Document>();
-
-    [InverseProperty("Application")]
-    public virtual ICollection<LeaseApplicationStatusHistory> StatusHistory { get; set; } = new List<LeaseApplicationStatusHistory>();
 }
