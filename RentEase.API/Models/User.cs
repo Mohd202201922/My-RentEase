@@ -61,4 +61,10 @@ public partial class User
 
     [InverseProperty("User")]
     public virtual ICollection<Notification> Notifications { get; set; } = new List<Notification>();
+
+    [InverseProperty("Tenant")]
+    public virtual ICollection<ScreeningAppointment> ScreeningAppointments { get; set; } = new List<ScreeningAppointment>();
+
+    [InverseProperty("Tenant")]
+    public virtual ICollection<LeaseAgreement> LeaseAgreements { get; set; } = new List<LeaseAgreement>();
 }

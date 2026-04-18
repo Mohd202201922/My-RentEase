@@ -50,8 +50,16 @@ public partial class PropertyLeasingDbContext : DbContext
 
     public virtual DbSet<User> Users { get; set; }
 
+    // NEW DbSets
+    public virtual DbSet<ScreeningAppointment> ScreeningAppointments { get; set; }
+    public virtual DbSet<LeaseAgreement> LeaseAgreements { get; set; }
+
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
+        // ========================================
+        // EXISTING CONFIGURATIONS
+        // ========================================
+
         modelBuilder.Entity<Amenity>(entity =>
         {
             entity.HasKey(e => e.AmenityId).HasName("PK__Amenitie__842AF52B66D7181C");
@@ -278,6 +286,63 @@ public partial class PropertyLeasingDbContext : DbContext
             entity.HasKey(e => e.UserId).HasName("PK__User__1788CCACEAA9FFB0");
 
             entity.Property(e => e.Role).HasDefaultValue("Tenant");
+        });
+
+        // ========================================
+        // NEW CONFIGURATIONS FOR SCREENING AND LEASE AGREEMENT
+        // ========================================
+
+        // Configure ScreeningAppointment
+        modelBuilder.Entity<ScreeningAppointment>(entity =>
+        {
+            entity.HasKey(e => e.ScreeningId);
+
+            entity.Property(e => e.Status).HasDefaultValue("Pending");
+            entity.Property(e => e.CreatedAt).HasDefaultValueSql("(getdate())");
+
+            entity.HasOne(e => e.Application)
+                .WithMany(e => e.ScreeningAppointments)
+                .HasForeignKey(e => e.ApplicationId)
+                .OnDelete(DeleteBehavior.Cascade);
+
+            entity.HasOne(e => e.Unit)
+                .WithMany(e => e.ScreeningAppointments)
+                .HasForeignKey(e => e.UnitId)
+                .OnDelete(DeleteBehavior.Restrict);
+
+            entity.HasOne(e => e.Tenant)
+                .WithMany(e => e.ScreeningAppointments)
+                .HasForeignKey(e => e.TenantId)
+                .OnDelete(DeleteBehavior.Restrict);
+        });
+
+        // Configure LeaseAgreement
+        modelBuilder.Entity<LeaseAgreement>(entity =>
+        {
+            entity.HasKey(e => e.LeaseAgreementId);
+
+            entity.Property(e => e.Status).HasDefaultValue("Draft");
+            entity.Property(e => e.CreatedAt).HasDefaultValueSql("(getdate())");
+
+            entity.HasOne(e => e.Application)
+                .WithMany(e => e.LeaseAgreements)
+                .HasForeignKey(e => e.ApplicationId)
+                .OnDelete(DeleteBehavior.Restrict);
+
+            entity.HasOne(e => e.Screening)
+                .WithOne(e => e.LeaseAgreement)
+                .HasForeignKey<LeaseAgreement>(e => e.ScreeningId)
+                .OnDelete(DeleteBehavior.Restrict);
+
+            entity.HasOne(e => e.Unit)
+                .WithMany(e => e.LeaseAgreements)
+                .HasForeignKey(e => e.UnitId)
+                .OnDelete(DeleteBehavior.Restrict);
+
+            entity.HasOne(e => e.Tenant)
+                .WithMany(e => e.LeaseAgreements)
+                .HasForeignKey(e => e.TenantId)
+                .OnDelete(DeleteBehavior.Restrict);
         });
 
         // Seed Data

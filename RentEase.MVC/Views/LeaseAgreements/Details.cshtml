@@ -1,0 +1,82 @@
+﻿@model RentEase.MVC.Controllers.LeaseApplicationDetailViewModel
+@{
+    ViewData["Title"] = "Application Details";
+}
+
+<div class="row justify-content-center">
+    <div class="col-md-8">
+        <div class="card shadow-sm">
+            <div class="card-header bg-dark text-white d-flex justify-content-between align-items-center">
+                <h5 class="mb-0"><i class="fa fa-file-alt me-2"></i>Application #@Model.ApplicationId</h5>
+                <span class="badge bg-@(Model.Status == "Approved" ? "success" : Model.Status == "Rejected" ? "danger" : "warning")">
+                    @Model.Status
+                </span>
+            </div>
+            <div class="card-body">
+                <div class="row mb-4">
+                    <div class="col-md-6">
+                        <h6 class="text-primary">Unit Information</h6>
+                        <p><strong>Unit:</strong> @Model.UnitNumber</p>
+                        <p><strong>Property:</strong> @Model.PropertyName</p>
+                        <p><strong>Address:</strong> @Model.PropertyAddress</p>
+                        <p><strong>Monthly Rent:</strong> BD @Model.MonthlyRent.ToString("N2")</p>
+                    </div>
+                    <div class="col-md-6">
+                        <h6 class="text-primary">Tenant Information</h6>
+                        <p><strong>Name:</strong> @Model.TenantName</p>
+                        <p><strong>Phone:</strong> @Model.TenantPhone</p>
+                        <p><strong>Email:</strong> @Model.TenantEmail</p>
+                        <p><strong>Applied:</strong> @Model.CreatedAt.ToString("dd MMM yyyy")</p>
+                    </div>
+                </div>
+
+                @if (Model.RequestedStartDate.HasValue || Model.RequestedEndDate.HasValue)
+                {
+                    <div class="mb-4">
+                        <h6 class="text-primary">Preferred Dates</h6>
+                        <p><strong>Start Date:</strong> @(Model.RequestedStartDate?.ToString("dd MMM yyyy") ?? "Not specified")</p>
+                        <p><strong>End Date:</strong> @(Model.RequestedEndDate?.ToString("dd MMM yyyy") ?? "Not specified")</p>
+                    </div>
+                }
+
+                @if (!string.IsNullOrEmpty(Model.Notes))
+                {
+                    <div class="mb-4">
+                        <h6 class="text-primary">Additional Notes</h6>
+                        <p>@Model.Notes</p>
+                    </div>
+                }
+
+                @if (Model.HasScreening)
+                {
+                    <div class="alert alert-info">
+                        <i class="fa fa-calendar-check me-2"></i>
+                        <strong>Screening Status:</strong> @Model.ScreeningStatus
+                        @if (Model.ScreeningDate.HasValue)
+                        {
+                            <br />
+                            <strong>Scheduled:</strong>
+ 
+                            @Model.ScreeningDate.Value.ToString("dd MMM yyyy HH:mm")
+                        }
+                    </div>
+                }
+
+                <div class="d-flex gap-2">
+                    <a asp-action="Index" class="btn btn-outline-secondary">
+                        <i class="fa fa-arrow-left me-1"></i> Back
+                    </a>
+                    @if (User.IsInRole("PropertyManager") && Model.Status == "Pending")
+                    {
+                        <form asp-action="UpdateStatus" method="post" class="d-inline">
+                            @Html.AntiForgeryToken()
+                            <input type="hidden" name="applicationId" value="@Model.ApplicationId" />
+                            <input type="hidden" name="newStatus" value="Screening" />
+                            <button class="btn btn-info">Move to Screening</button>
+                        </form>
+                    }
+                </div>
+            </div>
+        </div>
+    </div>
+</div>

@@ -34,6 +34,9 @@ public partial class LeaseApplication
     [StringLength(50)]
     public string? Status { get; set; }
 
+    [Column(TypeName = "datetime")]
+    public DateTime? UpdatedAt { get; set; }
+
     [InverseProperty("Application")]
     public virtual ICollection<Document> Documents { get; set; } = new List<Document>();
 
@@ -50,4 +53,10 @@ public partial class LeaseApplication
     [ForeignKey("UserId")]
     [InverseProperty("LeaseApplications")]
     public virtual User User { get; set; } = null!;
+
+    [InverseProperty("Application")]
+    public virtual ICollection<ScreeningAppointment> ScreeningAppointments { get; set; } = new List<ScreeningAppointment>();
+
+    [InverseProperty("Application")]
+    public virtual ICollection<LeaseAgreement> LeaseAgreements { get; set; } = new List<LeaseAgreement>();
 }

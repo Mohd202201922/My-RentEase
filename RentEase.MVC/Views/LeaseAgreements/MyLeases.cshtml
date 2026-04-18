@@ -1,0 +1,60 @@
+﻿@model List<RentEase.MVC.ViewModels.LeaseAgreementListViewModel>
+@{
+    ViewData["Title"] = "My Leases";
+}
+
+<div class="d-flex justify-content-between align-items-center mb-3">
+    <h2><i class="fa fa-file-contract me-2"></i>My Lease Agreements</h2>
+</div>
+
+@if (!Model.Any())
+{
+    <div class="alert alert-info">
+        <i class="fa fa-info-circle me-2"></i> You don't have any lease agreements yet.
+        <a asp-controller="Properties" asp-action="Index" class="alert-link">Browse properties</a> to find your next home.
+    </div>
+}
+else
+{
+    <div class="table-responsive">
+        <table class="table table-hover">
+            <thead class="table-dark">
+                <tr>
+                    <th>Unit</th>
+                    <th>Property</th>
+                    <th>Start Date</th>
+                    <th>End Date</th>
+                    <th>Monthly Rent</th>
+                    <th>Status</th>
+                    <th></th>
+                </tr>
+            </thead>
+            <tbody>
+                @foreach (var l in Model)
+                {
+                    var statusColor = l.Status switch
+                    {
+                        "Signed" => "success",
+                        "Active" => "primary",
+                        "Expired" => "danger",
+                        "Terminated" => "warning",
+                        _ => "secondary"
+                    };
+                    <tr>
+                        <td><strong>@l.UnitNumber</strong></td>
+                        <td>@l.PropertyName</td>
+                        <td>@l.LeaseStartDate.ToString("dd MMM yyyy")</td>
+                        <td>@l.LeaseEndDate.ToString("dd MMM yyyy")</td>
+                        <td>BD @l.MonthlyRent.ToString("N2")</td>
+                        <td><span class="badge bg-@statusColor">@l.Status</span></td>
+                        <td>
+                            <a asp-action="Details" asp-route-id="@l.LeaseAgreementId" class="btn btn-sm btn-primary">
+                                <i class="fa fa-eye"></i> View
+                            </a>
+                        </td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+    </div>
+}

@@ -39,7 +39,7 @@
     @foreach (var u in Model)
     {
         var statusColor = u.AvailabilityStatus == "Available" ? "success"
-                        : u.AvailabilityStatus == "Occupied" ? "danger" : "warning";
+        : u.AvailabilityStatus == "Occupied" ? "danger" : "warning";
 
         <div class="col-md-4">
             <div class="card h-100 shadow-sm">
@@ -73,17 +73,56 @@
                     }
                 </div>
                 <div class="card-footer d-flex gap-2">
-                    <a asp-action="UnitDetails" asp-route-id="@u.UnitId"
-                       class="btn btn-outline-secondary btn-sm">Details</a>
                     @if (u.AvailabilityStatus == "Available" && User.IsInRole("Tenant"))
                     {
+                        <a asp-action="UnitDetails" asp-route-id="@u.UnitId"
+                           class="btn btn-outline-secondary w-50">
+                            <i class="fa fa-info-circle me-1"></i> Details
+                        </a>
                         <a asp-controller="LeaseApplications" asp-action="Apply" asp-route-unitId="@u.UnitId"
-                           class="btn btn-success btn-sm flex-fill">
+                           class="btn btn-success w-50">
                             <i class="fa fa-file-alt me-1"></i> Apply
                         </a>
+                    }
+                    else if (u.AvailabilityStatus == "Available" && User.Identity!.IsAuthenticated && !User.IsInRole("Tenant"))
+                    {
+                        <a asp-action="UnitDetails" asp-route-id="@u.UnitId"
+                           class="btn btn-outline-secondary w-50">
+                            <i class="fa fa-info-circle me-1"></i> Details
+                        </a>
+                        <button class="btn btn-secondary w-50" disabled>
+                            <i class="fa fa-lock me-1"></i> Tenants Only
+                        </button>
+                    }
+                    else if (u.AvailabilityStatus == "Available" && !User.Identity!.IsAuthenticated)
+                    {
+                        <a asp-action="UnitDetails" asp-route-id="@u.UnitId"
+                           class="btn btn-outline-secondary w-50">
+                            <i class="fa fa-info-circle me-1"></i> Details
+                        </a>
+                        <a asp-controller="Account" asp-action="Login"
+                           class="btn btn-secondary w-50">
+                            <i class="fa fa-lock me-1"></i> Login to Apply
+                        </a>
+                    }
+                    else
+                    {
+                        <a asp-action="UnitDetails" asp-route-id="@u.UnitId"
+                           class="btn btn-outline-secondary w-50">
+                            <i class="fa fa-info-circle me-1"></i> Details
+                        </a>
+                        <button class="btn btn-secondary w-50" disabled>
+                            <i class="fa fa-ban me-1"></i> Not Available
+                        </button>
                     }
                 </div>
             </div>
         </div>
     }
 </div>
+
+@section Scripts {
+    @{
+        await Html.RenderPartialAsync("_ValidationScriptsPartial");
+    }
+}

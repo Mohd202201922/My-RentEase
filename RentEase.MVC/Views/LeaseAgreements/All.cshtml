@@ -1,0 +1,67 @@
+﻿@model List<RentEase.MVC.ViewModels.LeaseAgreementListViewModel>
+@{
+    ViewData["Title"] = "All Lease Agreements";
+}
+
+<div class="d-flex justify-content-between align-items-center mb-3">
+    <h2><i class="fa fa-file-contract me-2"></i>All Lease Agreements</h2>
+</div>
+
+<!-- Status filter -->
+<ul class="nav nav-tabs mb-3">
+    <li class="nav-item">
+        <a class="nav-link @(ViewBag.Status == null ? "active" : "")" asp-action="All">All</a>
+    </li>
+    @foreach (var s in new[] { "Draft", "Signed", "Active", "Expired", "Terminated" })
+    {
+        <li class="nav-item">
+            <a class="nav-link @(ViewBag.Status == s ? "active" : "")" asp-action="All" asp-route-status="@s">@s</a>
+        </li>
+    }
+</ul>
+
+<div class="table-responsive">
+    <table class="table table-hover">
+        <thead class="table-dark">
+            <tr>
+                <th>Tenant</th>
+                <th>Unit</th>
+                <th>Property</th>
+                <th>Start Date</th>
+                <th>End Date</th>
+                <th>Monthly Rent</th>
+                <th>Status</th>
+                <th>Created</th>
+                <th></th>
+            </tr>
+        </thead>
+        <tbody>
+            @foreach (var l in Model)
+            {
+                var statusColor = l.Status switch
+                {
+                    "Signed" => "success",
+                    "Active" => "primary",
+                    "Expired" => "danger",
+                    "Terminated" => "warning",
+                    _ => "secondary"
+                };
+                <tr>
+                    <td>@l.TenantName</td>
+                    <td><strong>@l.UnitNumber</strong></td>
+                    <td>@l.PropertyName</td>
+                    <td>@l.LeaseStartDate.ToString("dd MMM yyyy")</td>
+                    <td>@l.LeaseEndDate.ToString("dd MMM yyyy")</td>
+                    <td>BD @l.MonthlyRent.ToString("N2")</td>
+                    <td><span class="badge bg-@statusColor">@l.Status</span></td>
+                    <td>@l.CreatedAt.ToString("dd MMM yyyy")</td>
+                    <td>
+                        <a asp-action="Details" asp-route-id="@l.LeaseAgreementId" class="btn btn-sm btn-primary">
+                            <i class="fa fa-eye"></i> View
+                        </a>
+                    </td>
+                </tr>
+            }
+        </tbody>
+    </table>
+</div>

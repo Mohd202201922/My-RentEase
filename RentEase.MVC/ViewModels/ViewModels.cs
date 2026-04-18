@@ -43,10 +43,10 @@ public class RegisterViewModel
 
 public class ProfileViewModel
 {
-    public string FullName   { get; set; } = string.Empty;
-    public string Email      { get; set; } = string.Empty;
-    public string? Phone     { get; set; }
-    public string Role       { get; set; } = string.Empty;
+    public string FullName { get; set; } = string.Empty;
+    public string Email { get; set; } = string.Empty;
+    public string? Phone { get; set; }
+    public string Role { get; set; } = string.Empty;
 
     [DataType(DataType.Password)]
     [Display(Name = "Current Password")]
@@ -65,40 +65,40 @@ public class ProfileViewModel
 // ── Properties / Units ───────────────────────────────
 public class PropertyListViewModel
 {
-    public int     PropertyId   { get; set; }
-    public string  Name         { get; set; } = string.Empty;
-    public string? Description  { get; set; }
-    public string  Address      { get; set; } = string.Empty;
-    public string? City         { get; set; }
+    public int PropertyId { get; set; }
+    public string Name { get; set; } = string.Empty;
+    public string? Description { get; set; }
+    public string Address { get; set; } = string.Empty;
+    public string? City { get; set; }
     public string? PropertyType { get; set; }
-    public string? ImgPath      { get; set; }
-    public int     TotalUnits   { get; set; }
-    public int     AvailableUnits { get; set; }
+    public string? ImgPath { get; set; }
+    public int TotalUnits { get; set; }
+    public int AvailableUnits { get; set; }
 }
 
 public class UnitListViewModel
 {
-    public int      UnitId             { get; set; }
-    public string   UnitNumber         { get; set; } = string.Empty;
-    public string?  UnitType           { get; set; }
-    public double?  Sizesqm            { get; set; }
-    public decimal? MonthlyRent        { get; set; }
-    public string?  Amenities          { get; set; }
-    public string?  AvailabilityStatus { get; set; }
-    public string?  ImgPath            { get; set; }
-    public string   PropertyName       { get; set; } = string.Empty;
-    public string   PropertyAddress    { get; set; } = string.Empty;
-    public int      PropertyId         { get; set; }
-    public double   AverageRating      { get; set; }
-    public int      FeedbackCount      { get; set; }
+    public int UnitId { get; set; }
+    public string UnitNumber { get; set; } = string.Empty;
+    public string? UnitType { get; set; }
+    public double? Sizesqm { get; set; }
+    public decimal? MonthlyRent { get; set; }
+    public string? Amenities { get; set; }
+    public string? AvailabilityStatus { get; set; }
+    public string? ImgPath { get; set; }
+    public string PropertyName { get; set; } = string.Empty;
+    public string PropertyAddress { get; set; } = string.Empty;
+    public int PropertyId { get; set; }
+    public double AverageRating { get; set; }
+    public int FeedbackCount { get; set; }
 }
 
 // ── Lease Application ────────────────────────────────
 public class CreateLeaseApplicationViewModel
 {
     public int UnitId { get; set; }
-    public string UnitNumber    { get; set; } = string.Empty;
-    public string PropertyName  { get; set; } = string.Empty;
+    public string UnitNumber { get; set; } = string.Empty;
+    public string PropertyName { get; set; } = string.Empty;
     public decimal? MonthlyRent { get; set; }
 
     [Required]
@@ -117,15 +117,36 @@ public class CreateLeaseApplicationViewModel
 
 public class LeaseApplicationListViewModel
 {
-    public int      ApplicationId       { get; set; }
-    public string   UnitNumber          { get; set; } = string.Empty;
-    public string   PropertyName        { get; set; } = string.Empty;
-    public string   TenantName          { get; set; } = string.Empty;
+    public int ApplicationId { get; set; }
+    public string UnitNumber { get; set; } = string.Empty;
+    public string PropertyName { get; set; } = string.Empty;
+    public string TenantName { get; set; } = string.Empty;
     public DateTime? RequestedStartDate { get; set; }
-    public DateTime? RequestedEndDate   { get; set; }
-    public string   Status              { get; set; } = string.Empty;
-    public string?  Notes               { get; set; }
-    public DateTime CreatedAt           { get; set; }
+    public DateTime? RequestedEndDate { get; set; }
+    public string Status { get; set; } = string.Empty;
+    public string? Notes { get; set; }
+    public DateTime CreatedAt { get; set; }
+}
+
+public class LeaseApplicationDetailViewModel
+{
+    public int ApplicationId { get; set; }
+    public string UnitNumber { get; set; } = string.Empty;
+    public string PropertyName { get; set; } = string.Empty;
+    public string PropertyAddress { get; set; } = string.Empty;
+    public string TenantName { get; set; } = string.Empty;
+    public string TenantPhone { get; set; } = string.Empty;
+    public string TenantEmail { get; set; } = string.Empty;
+    public DateTime? RequestedStartDate { get; set; }
+    public DateTime? RequestedEndDate { get; set; }
+    public decimal MonthlyRent { get; set; }
+    public string? Notes { get; set; }
+    public string Status { get; set; } = string.Empty;
+    public DateTime CreatedAt { get; set; }
+    public bool HasScreening { get; set; }
+    public string? ScreeningStatus { get; set; }
+    public DateTime? ScreeningDate { get; set; }
+    public DateTime? UpdatedAt { get; set; }
 }
 
 // ── Maintenance ──────────────────────────────────────
@@ -145,41 +166,41 @@ public class CreateMaintenanceViewModel
 
     public string Priority { get; set; } = "Medium";
 
-    public string UnitNumber   { get; set; } = string.Empty;
+    public string UnitNumber { get; set; } = string.Empty;
     public string PropertyName { get; set; } = string.Empty;
 }
 
 public class MaintenanceListViewModel
 {
-    public int      RequestId      { get; set; }
-    public string   Title          { get; set; } = string.Empty;
-    public string?  Description    { get; set; }
-    public string?  RequestType    { get; set; }
-    public string   Priority       { get; set; } = string.Empty;
-    public string   Status         { get; set; } = string.Empty;
-    public string?  TicketNumber   { get; set; }
-    public string   UnitNumber     { get; set; } = string.Empty;
-    public string   PropertyName   { get; set; } = string.Empty;
-    public string   TenantName     { get; set; } = string.Empty;
-    public string?  AssignedStaff  { get; set; }
-    public DateTime SubmittedAt    { get; set; }
-    public DateTime? ResolvedAt    { get; set; }
+    public int RequestId { get; set; }
+    public string Title { get; set; } = string.Empty;
+    public string? Description { get; set; }
+    public string? RequestType { get; set; }
+    public string Priority { get; set; } = string.Empty;
+    public string Status { get; set; } = string.Empty;
+    public string? TicketNumber { get; set; }
+    public string UnitNumber { get; set; } = string.Empty;
+    public string PropertyName { get; set; } = string.Empty;
+    public string TenantName { get; set; } = string.Empty;
+    public string? AssignedStaff { get; set; }
+    public DateTime SubmittedAt { get; set; }
+    public DateTime? ResolvedAt { get; set; }
 }
 
 public class UpdateMaintenanceViewModel
 {
-    public int     RequestId      { get; set; }
-    public string  Title          { get; set; } = string.Empty;
-    public string  CurrentStatus  { get; set; } = string.Empty;
-    public string  NewStatus      { get; set; } = string.Empty;
-    public string? Notes          { get; set; }
-    public int?    AssignedStaffId { get; set; }
+    public int RequestId { get; set; }
+    public string Title { get; set; } = string.Empty;
+    public string CurrentStatus { get; set; } = string.Empty;
+    public string NewStatus { get; set; } = string.Empty;
+    public string? Notes { get; set; }
+    public int? AssignedStaffId { get; set; }
     public List<StaffSelectItem> StaffList { get; set; } = new();
 }
 
 public class StaffSelectItem
 {
-    public int    UserId   { get; set; }
+    public int UserId { get; set; }
     public string FullName { get; set; } = string.Empty;
 }
 
@@ -195,7 +216,6 @@ public class PublicLookupViewModel
     [Display(Name = "Registered Phone Number")]
     public string? Phone { get; set; }
 
-    // Result
     public MaintenanceLookupResultViewModel? Result { get; set; }
     public bool Searched { get; set; }
     public string? ErrorMessage { get; set; }
@@ -203,42 +223,42 @@ public class PublicLookupViewModel
 
 public class MaintenanceLookupResultViewModel
 {
-    public string   TicketNumber { get; set; } = string.Empty;
-    public string   Title        { get; set; } = string.Empty;
-    public string   Status       { get; set; } = string.Empty;
-    public string   Priority     { get; set; } = string.Empty;
-    public string   RequestType  { get; set; } = string.Empty;
-    public string   UnitNumber   { get; set; } = string.Empty;
-    public string   PropertyName { get; set; } = string.Empty;
-    public DateTime SubmittedAt  { get; set; }
-    public DateTime? ResolvedAt  { get; set; }
+    public string TicketNumber { get; set; } = string.Empty;
+    public string Title { get; set; } = string.Empty;
+    public string Status { get; set; } = string.Empty;
+    public string Priority { get; set; } = string.Empty;
+    public string RequestType { get; set; } = string.Empty;
+    public string UnitNumber { get; set; } = string.Empty;
+    public string PropertyName { get; set; } = string.Empty;
+    public DateTime SubmittedAt { get; set; }
+    public DateTime? ResolvedAt { get; set; }
     public List<StatusHistoryViewModel> History { get; set; } = new();
 }
 
 public class StatusHistoryViewModel
 {
-    public string?  OldStatus { get; set; }
-    public string   NewStatus { get; set; } = string.Empty;
-    public string?  Notes     { get; set; }
+    public string? OldStatus { get; set; }
+    public string NewStatus { get; set; } = string.Empty;
+    public string? Notes { get; set; }
     public DateTime ChangedAt { get; set; }
 }
 
 // ── Notifications ────────────────────────────────────
 public class NotificationViewModel
 {
-    public int      NotificationId   { get; set; }
-    public string   Message          { get; set; } = string.Empty;
-    public string?  NotificationType { get; set; }
-    public string   Status           { get; set; } = string.Empty;
-    public DateTime CreatedAt        { get; set; }
-    public bool     IsUnread => Status == "Unread";
+    public int NotificationId { get; set; }
+    public string Message { get; set; } = string.Empty;
+    public string? NotificationType { get; set; }
+    public string Status { get; set; } = string.Empty;
+    public DateTime CreatedAt { get; set; }
+    public bool IsUnread => Status == "Unread";
 }
 
 // ── Feedback ─────────────────────────────────────────
 public class CreateFeedbackViewModel
 {
     public int UnitId { get; set; }
-    public string UnitNumber   { get; set; } = string.Empty;
+    public string UnitNumber { get; set; } = string.Empty;
     public string PropertyName { get; set; } = string.Empty;
 
     [Range(1, 5)]
@@ -251,38 +271,195 @@ public class CreateFeedbackViewModel
 // ── Dashboard ────────────────────────────────────────
 public class DashboardViewModel
 {
-    public int TotalProperties     { get; set; }
-    public int TotalUnits          { get; set; }
-    public int AvailableUnits      { get; set; }
-    public int OccupiedUnits       { get; set; }
+    public int TotalProperties { get; set; }
+    public int TotalUnits { get; set; }
+    public int AvailableUnits { get; set; }
+    public int OccupiedUnits { get; set; }
     public int PendingApplications { get; set; }
-    public int ActiveLeases        { get; set; }
+    public int ActiveLeases { get; set; }
     public int OpenMaintenanceRequests { get; set; }
-    public int OverduePayments     { get; set; }
+    public int OverduePayments { get; set; }
     public List<PropertyOccupancyViewModel> PropertyOccupancy { get; set; } = new();
-    public List<MaintenanceListViewModel> RecentMaintenance   { get; set; } = new();
+    public List<MaintenanceListViewModel> RecentMaintenance { get; set; } = new();
     public List<LeaseApplicationListViewModel> RecentApplications { get; set; } = new();
 }
 
 public class PropertyOccupancyViewModel
 {
-    public string PropertyName   { get; set; } = string.Empty;
-    public int    TotalUnits     { get; set; }
-    public int    OccupiedUnits  { get; set; }
-    public double OccupancyRate  { get; set; }
+    public string PropertyName { get; set; } = string.Empty;
+    public int TotalUnits { get; set; }
+    public int OccupiedUnits { get; set; }
+    public double OccupancyRate { get; set; }
 }
 
 // ── Payments ─────────────────────────────────────────
 public class PaymentListViewModel
 {
-    public int      PaymentId     { get; set; }
-    public string   UnitNumber    { get; set; } = string.Empty;
-    public string   PropertyName  { get; set; } = string.Empty;
-    public string   TenantName    { get; set; } = string.Empty;
-    public decimal  AmountDue     { get; set; }
-    public decimal? AmountPaid    { get; set; }
-    public DateTime DueDate       { get; set; }
-    public DateTime? PaidDate     { get; set; }
-    public string   PaymentStatus { get; set; } = string.Empty;
-    public string?  Notes         { get; set; }
+    public int PaymentId { get; set; }
+    public string UnitNumber { get; set; } = string.Empty;
+    public string PropertyName { get; set; } = string.Empty;
+    public string TenantName { get; set; } = string.Empty;
+    public decimal AmountDue { get; set; }
+    public decimal? AmountPaid { get; set; }
+    public DateTime DueDate { get; set; }
+    public DateTime? PaidDate { get; set; }
+    public string PaymentStatus { get; set; } = string.Empty;
+    public string? Notes { get; set; }
+}
+
+// ── SCREENING APPOINTMENT VIEW MODELS ────────────────
+public class BookScreeningViewModel
+{
+    public int ApplicationId { get; set; }
+    public int UnitId { get; set; }
+    public string UnitNumber { get; set; } = string.Empty;
+    public string PropertyName { get; set; } = string.Empty;
+    public decimal? MonthlyRent { get; set; }
+
+    [Required]
+    [DataType(DataType.Date)]
+    [Display(Name = "Preferred Date")]
+    public DateTime PreferredDate { get; set; } = DateTime.Now.AddDays(3);
+
+    [Required]
+    [Display(Name = "Preferred Time")]
+    public string PreferredTime { get; set; } = "10:00";
+
+    [StringLength(500)]
+    [Display(Name = "Additional Notes")]
+    public string? Notes { get; set; }
+
+    public List<string> AvailableTimeSlots { get; } = new List<string>
+    {
+        "09:00", "10:00", "11:00", "13:00", "14:00", "15:00", "16:00"
+    };
+}
+
+public class ScreeningListViewModel
+{
+    public int ScreeningId { get; set; }
+    public int ApplicationId { get; set; }
+    public string UnitNumber { get; set; } = string.Empty;
+    public string PropertyName { get; set; } = string.Empty;
+    public string TenantName { get; set; } = string.Empty;
+    public DateTime ScheduledDate { get; set; }
+    public DateTime EndTime { get; set; }
+    public string Status { get; set; } = string.Empty;
+    public string? Notes { get; set; }
+    public string? ManagerNotes { get; set; }
+    public DateTime CreatedAt { get; set; }
+}
+
+public class ManageScreeningViewModel
+{
+    public int ScreeningId { get; set; }
+    public int ApplicationId { get; set; }
+    public string UnitNumber { get; set; } = string.Empty;
+    public string PropertyName { get; set; } = string.Empty;
+    public string TenantName { get; set; } = string.Empty;
+    public string TenantPhone { get; set; } = string.Empty;
+    public string TenantEmail { get; set; } = string.Empty;
+    public DateTime ScheduledDate { get; set; }
+    public DateTime EndTime { get; set; }
+    public string CurrentStatus { get; set; } = string.Empty;
+    public string? Notes { get; set; }
+
+    [Display(Name = "New Status")]
+    public string NewStatus { get; set; } = string.Empty;
+
+    [Display(Name = "Manager Notes")]
+    public string? ManagerNotes { get; set; }
+
+    [Display(Name = "Reschedule Date")]
+    [DataType(DataType.Date)]
+    public DateTime? RescheduleDate { get; set; }
+
+    [Display(Name = "Reschedule Time")]
+    public string? RescheduleTime { get; set; }
+
+    public List<string> AvailableStatuses { get; } = new List<string>
+    {
+        "Pending", "Confirmed", "Completed", "Cancelled", "Rescheduled"
+    };
+
+    public List<string> AvailableTimeSlots { get; } = new List<string>
+    {
+        "09:00", "10:00", "11:00", "13:00", "14:00", "15:00", "16:00"
+    };
+}
+
+// ── LEASE AGREEMENT VIEW MODELS ──────────────────────
+public class CreateLeaseAgreementViewModel
+{
+    public int ApplicationId { get; set; }
+    public int ScreeningId { get; set; }
+    public int UnitId { get; set; }
+    public string UnitNumber { get; set; } = string.Empty;
+    public string PropertyName { get; set; } = string.Empty;
+    public string TenantName { get; set; } = string.Empty;
+    public int TenantId { get; set; }
+
+    [Required]
+    [DataType(DataType.Date)]
+    [Display(Name = "Lease Start Date")]
+    public DateTime LeaseStartDate { get; set; } = DateTime.Now.AddDays(7);
+
+    [Required]
+    [DataType(DataType.Date)]
+    [Display(Name = "Lease End Date")]
+    public DateTime LeaseEndDate { get; set; } = DateTime.Now.AddYears(1).AddDays(7);
+
+    [Required]
+    [Display(Name = "Monthly Rent (BD)")]
+    public decimal MonthlyRent { get; set; }
+
+    [Required]
+    [Display(Name = "Security Deposit (BD)")]
+    public decimal SecurityDeposit { get; set; }
+
+    [Display(Name = "Late Fee Per Day (BD)")]
+    public decimal? LateFeePerDay { get; set; }
+
+    [Display(Name = "Terms & Conditions")]
+    public string? TermsAndConditions { get; set; }
+
+    [Display(Name = "Special Clauses")]
+    public string? SpecialClauses { get; set; }
+}
+
+public class LeaseAgreementViewModel
+{
+    public int LeaseAgreementId { get; set; }
+    public int ApplicationId { get; set; }
+    public int ScreeningId { get; set; }
+    public string UnitNumber { get; set; } = string.Empty;
+    public string PropertyName { get; set; } = string.Empty;
+    public string PropertyAddress { get; set; } = string.Empty;
+    public string TenantName { get; set; } = string.Empty;
+    public string TenantPhone { get; set; } = string.Empty;
+    public string TenantEmail { get; set; } = string.Empty;
+    public DateTime LeaseStartDate { get; set; }
+    public DateTime LeaseEndDate { get; set; }
+    public decimal MonthlyRent { get; set; }
+    public decimal SecurityDeposit { get; set; }
+    public decimal? LateFeePerDay { get; set; }
+    public string Status { get; set; } = string.Empty;
+    public string? TermsAndConditions { get; set; }
+    public string? SpecialClauses { get; set; }
+    public DateTime? SignedDate { get; set; }
+    public DateTime CreatedAt { get; set; }
+    public DateTime? ScreeningDate { get; set; }
+}
+
+public class LeaseAgreementListViewModel
+{
+    public int LeaseAgreementId { get; set; }
+    public string UnitNumber { get; set; } = string.Empty;
+    public string PropertyName { get; set; } = string.Empty;
+    public string TenantName { get; set; } = string.Empty;
+    public DateTime LeaseStartDate { get; set; }
+    public DateTime LeaseEndDate { get; set; }
+    public decimal MonthlyRent { get; set; }
+    public string Status { get; set; } = string.Empty;
+    public DateTime CreatedAt { get; set; }
 }

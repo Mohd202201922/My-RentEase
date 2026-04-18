@@ -1,0 +1,62 @@
+﻿@model RentEase.MVC.ViewModels.BookScreeningViewModel
+@{
+    ViewData["Title"] = "Book Screening Appointment";
+}
+
+<div class="row justify-content-center">
+    <div class="col-md-7">
+        <div class="card shadow-sm">
+            <div class="card-header bg-primary text-white">
+                <h4 class="mb-0"><i class="fa fa-calendar-check me-2"></i>Book Screening Appointment</h4>
+            </div>
+            <div class="card-body">
+                <div class="alert alert-info mb-4">
+                    <strong>Unit:</strong> @Model.UnitNumber &nbsp;|&nbsp;
+                    <strong>Property:</strong> @Model.PropertyName &nbsp;|&nbsp;
+                    <strong>Rent:</strong> BD @Model.MonthlyRent?.ToString("N0") /month
+                </div>
+
+                <form asp-action="Book" method="post">
+                    @Html.AntiForgeryToken()
+                    <input type="hidden" asp-for="ApplicationId" />
+                    <input type="hidden" asp-for="UnitId" />
+
+                    <div class="mb-3">
+                        <label asp-for="PreferredDate" class="form-label"></label>
+                        <input asp-for="PreferredDate" type="date" class="form-control" min="@DateTime.Now.AddDays(1).ToString("yyyy-MM-dd")" />
+                        <span asp-validation-for="PreferredDate" class="text-danger small"></span>
+                    </div>
+
+                    <div class="mb-3">
+                        <label asp-for="PreferredTime" class="form-label"></label>
+                        <select asp-for="PreferredTime" class="form-select" asp-items="@(new SelectList(Model.AvailableTimeSlots))">
+                        </select>
+                        <span asp-validation-for="PreferredTime" class="text-danger small"></span>
+                    </div>
+
+                    <div class="mb-4">
+                        <label asp-for="Notes" class="form-label"></label>
+                        <textarea asp-for="Notes" class="form-control" rows="3" placeholder="Any special requirements or notes..."></textarea>
+                        <span asp-validation-for="Notes" class="text-danger small"></span>
+                    </div>
+
+                    <div class="d-flex gap-2">
+                        <button type="submit" class="btn btn-primary flex-fill">
+                            <i class="fa fa-calendar-plus me-1"></i> Request Screening
+                        </button>
+                        <a asp-controller="LeaseApplications" asp-action="Index" class="btn btn-outline-secondary">Cancel</a>
+                    </div>
+                </form>
+            </div>
+            <div class="card-footer text-muted small">
+                <i class="fa fa-info-circle me-1"></i> Once requested, our property manager will confirm your appointment time.
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    @{
+        await Html.RenderPartialAsync("_ValidationScriptsPartial");
+    }
+}

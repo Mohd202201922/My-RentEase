@@ -13,17 +13,17 @@ namespace RentEase.MVC.Controllers;
 public class LeaseApplicationsController : Controller
 {
     private readonly PropertyLeasingDbContext _db;
-    private readonly UserManager<AppUser>     _userManager;
-    private readonly NotificationService      _notifier;
+    private readonly UserManager<AppUser> _userManager;
+    private readonly NotificationService _notifier;
 
     public LeaseApplicationsController(
         PropertyLeasingDbContext db,
         UserManager<AppUser> userManager,
         NotificationService notifier)
     {
-        _db          = db;
+        _db = db;
         _userManager = userManager;
-        _notifier    = notifier;
+        _notifier = notifier;
     }
 
     // Helper: get the app User from the logged-in identity user
@@ -56,15 +56,15 @@ public class LeaseApplicationsController : Controller
             .OrderByDescending(a => a.CreatedAt)
             .Select(a => new LeaseApplicationListViewModel
             {
-                ApplicationId      = a.ApplicationId,
-                UnitNumber         = a.Unit.UnitNumber,
-                PropertyName       = a.Unit.Property.Name,
-                TenantName         = a.User.FullName,
+                ApplicationId = a.ApplicationId,
+                UnitNumber = a.Unit.UnitNumber,
+                PropertyName = a.Unit.Property.Name,
+                TenantName = a.User.FullName,
                 RequestedStartDate = a.RequestedStartDate,
-                RequestedEndDate   = a.RequestedEndDate,
-                Status             = a.Status,
-                Notes              = a.Notes,
-                CreatedAt          = a.CreatedAt
+                RequestedEndDate = a.RequestedEndDate,
+                Status = a.Status,
+                Notes = a.Notes,
+                CreatedAt = a.CreatedAt
             })
             .ToListAsync();
 
@@ -76,7 +76,10 @@ public class LeaseApplicationsController : Controller
     [Authorize(Roles = "Tenant")]
     public async Task<IActionResult> Apply(int unitId)
     {
-        var unit = await _db.Units.Include(u => u.Property).FirstOrDefaultAsync(u => u.UnitId == unitId);
+        var unit = await _db.Units
+            .Include(u => u.Property)
+            .FirstOrDefaultAsync(u => u.UnitId == unitId);
+
         if (unit == null) return NotFound();
 
         if (unit.AvailabilityStatus != "Available")
@@ -87,10 +90,12 @@ public class LeaseApplicationsController : Controller
 
         return View(new CreateLeaseApplicationViewModel
         {
-            UnitId       = unit.UnitId,
-            UnitNumber   = unit.UnitNumber,
+            UnitId = unit.UnitId,
+            UnitNumber = unit.UnitNumber,
             PropertyName = unit.Property.Name,
-            MonthlyRent  = unit.MonthlyRent
+            MonthlyRent = unit.MonthlyRent,
+            RequestedStartDate = DateTime.Now.AddDays(7),
+            RequestedEndDate = DateTime.Now.AddYears(1).AddDays(7)
         });
     }
 
@@ -117,13 +122,13 @@ public class LeaseApplicationsController : Controller
 
         var application = new LeaseApplication
         {
-            UserId             = appUser.UserId,
-            UnitId             = model.UnitId,
+            UserId = appUser.UserId,
+            UnitId = model.UnitId,
             RequestedStartDate = model.RequestedStartDate,
-            RequestedEndDate   = model.RequestedEndDate,
-            Notes              = model.Notes,
-            Status             = "Pending",
-            CreatedAt          = DateTime.Now
+            RequestedEndDate = model.RequestedEndDate,
+            Notes = model.Notes,
+            Status = "Pending",
+            CreatedAt = DateTime.Now
         };
 
         _db.LeaseApplications.Add(application);
@@ -131,18 +136,65 @@ public class LeaseApplicationsController : Controller
 
         // Notify tenant
         await _notifier.SendAsync(appUser.UserId,
-            "Your lease application has been submitted and is under review.",
+            "Your lease application has been submitted. Please book a screening appointment to proceed.",
             "LeaseUpdate");
 
         // Notify all managers
         var managers = await _db.Users.Where(u => u.Role == "PropertyManager").ToListAsync();
         foreach (var mgr in managers)
+        {
             await _notifier.SendAsync(mgr.UserId,
-                $"New lease application from {appUser.FullName} for unit {model.UnitNumber}.",
+                $"New lease application from {appUser.FullName} for unit {model.UnitNumber}. Please review and schedule screening.",
                 "LeaseUpdate");
+        }
 
-        TempData["Success"] = $"Application submitted! Your ticket is being reviewed.";
-        return RedirectToAction("Index");
+        // Redirect to book screening
+        TempData["Success"] = "Application submitted! Please book a screening appointment to continue.";
+        return RedirectToAction("Book", "Screening", new { applicationId = application.ApplicationId });
+    }
+
+    // GET /LeaseApplications/Details/{id}
+    public async Task<IActionResult> Details(int id)
+    {
+        var appUser = await GetAppUserAsync();
+        if (appUser == null) return Unauthorized();
+
+        var application = await _db.LeaseApplications
+            .Include(a => a.Unit)
+            .ThenInclude(u => u.Property)
+            .Include(a => a.User)
+            .FirstOrDefaultAsync(a => a.ApplicationId == id);
+
+        if (application == null) return NotFound();
+
+        // Check authorization
+        if (appUser.Role == "Tenant" && application.UserId != appUser.UserId)
+            return Unauthorized();
+
+        var screening = await _db.ScreeningAppointments
+            .FirstOrDefaultAsync(s => s.ApplicationId == id);
+
+        var model = new LeaseApplicationDetailViewModel
+        {
+            ApplicationId = application.ApplicationId,
+            UnitNumber = application.Unit.UnitNumber,
+            PropertyName = application.Unit.Property.Name,
+            PropertyAddress = application.Unit.Property.Address,
+            TenantName = application.User.FullName,
+            TenantPhone = application.User.Phone ?? "N/A",
+            TenantEmail = application.User.Email,
+            RequestedStartDate = application.RequestedStartDate,
+            RequestedEndDate = application.RequestedEndDate,
+            MonthlyRent = application.Unit.MonthlyRent ?? 0,
+            Notes = application.Notes,
+            Status = application.Status,
+            CreatedAt = application.CreatedAt,
+            HasScreening = screening != null,
+            ScreeningStatus = screening?.Status,
+            ScreeningDate = screening?.ScheduledDate
+        };
+
+        return View(model);
     }
 
     // POST /LeaseApplications/UpdateStatus — Manager only
@@ -158,10 +210,12 @@ public class LeaseApplicationsController : Controller
 
         if (application == null) return NotFound();
 
+        var oldStatus = application.Status;
         application.Status = newStatus;
+        await _db.SaveChangesAsync();
 
-        // If approved → create Lease and mark unit as Occupied
-        if (newStatus == "Approved")
+        // If approved directly (without screening flow) - for existing applications
+        if (newStatus == "Approved" && oldStatus != "Approved")
         {
             // Get or create the "Active" lease status
             var activeStatus = await _db.LeaseStatuses
@@ -181,12 +235,12 @@ public class LeaseApplicationsController : Controller
 
             var lease = new Lease
             {
-                ApplicationId   = application.ApplicationId,
-                LeaseStartDate  = application.RequestedStartDate ?? DateTime.Now,
-                LeaseEndDate    = application.RequestedEndDate   ?? DateTime.Now.AddYears(1),
-                MonthlyRent     = application.Unit.MonthlyRent ?? 0,
+                ApplicationId = application.ApplicationId,
+                LeaseStartDate = application.RequestedStartDate ?? DateTime.Now,
+                LeaseEndDate = application.RequestedEndDate ?? DateTime.Now.AddYears(1),
+                MonthlyRent = application.Unit.MonthlyRent ?? 0,
                 SecurityDeposit = (application.Unit.MonthlyRent ?? 0) * 2,
-                CreatedAt       = DateTime.Now
+                CreatedAt = DateTime.Now
             };
             _db.Leases.Add(lease);
             await _db.SaveChangesAsync();
@@ -206,14 +260,13 @@ public class LeaseApplicationsController : Controller
             // Generate first payment record
             _db.PaymentRecords.Add(new PaymentRecord
             {
-                LeaseId       = lease.LeaseId,
-                AmountDue     = lease.MonthlyRent,
-                DueDate       = lease.LeaseStartDate,
+                LeaseId = lease.LeaseId,
+                AmountDue = lease.MonthlyRent,
+                DueDate = lease.LeaseStartDate,
                 PaymentStatus = "Pending"
             });
+            await _db.SaveChangesAsync();
         }
-
-        await _db.SaveChangesAsync();
 
         // Notify tenant
         await _notifier.SendAsync(application.UserId,
@@ -223,4 +276,87 @@ public class LeaseApplicationsController : Controller
         TempData["Success"] = $"Application status updated to {newStatus}.";
         return RedirectToAction("Index");
     }
+
+    // POST /LeaseApplications/Delete/{id} — Manager only
+    [Authorize(Roles = "PropertyManager")]
+    [HttpPost]
+    [ValidateAntiForgeryToken]
+    public async Task<IActionResult> Delete(int id)
+    {
+        var application = await _db.LeaseApplications
+            .Include(a => a.User)
+            .FirstOrDefaultAsync(a => a.ApplicationId == id);
+
+        if (application == null) return NotFound();
+
+        // Notify tenant
+        await _notifier.SendAsync(application.UserId,
+            $"Your lease application for has been removed by the manager.",
+            "LeaseUpdate");
+
+        _db.LeaseApplications.Remove(application);
+        await _db.SaveChangesAsync();
+
+        TempData["Success"] = "Application deleted successfully.";
+        return RedirectToAction("Index");
+    }
+
+    // GET /LeaseApplications/Resubmit/{id} — Tenant can resubmit rejected application
+    [Authorize(Roles = "Tenant")]
+    public async Task<IActionResult> Resubmit(int id)
+    {
+        var appUser = await GetAppUserAsync();
+        if (appUser == null) return Unauthorized();
+
+        var application = await _db.LeaseApplications
+            .Include(a => a.Unit)
+            .ThenInclude(u => u.Property)
+            .FirstOrDefaultAsync(a => a.ApplicationId == id && a.UserId == appUser.UserId);
+
+        if (application == null) return NotFound();
+
+        if (application.Status != "Rejected")
+        {
+            TempData["Error"] = "Only rejected applications can be resubmitted.";
+            return RedirectToAction("Index");
+        }
+
+        application.Status = "Pending";
+        application.UpdatedAt = DateTime.Now;
+        await _db.SaveChangesAsync();
+
+        // Notify managers
+        var managers = await _db.Users.Where(u => u.Role == "PropertyManager").ToListAsync();
+        foreach (var mgr in managers)
+        {
+            await _notifier.SendAsync(mgr.UserId,
+                $"Application for Unit {application.Unit.UnitNumber} has been resubmitted by {appUser.FullName}.",
+                "LeaseUpdate");
+        }
+
+        TempData["Success"] = "Application resubmitted successfully.";
+        return RedirectToAction("Index");
+    }
+}
+
+// Additional ViewModel for Details page
+public class LeaseApplicationDetailViewModel
+{
+    public int ApplicationId { get; set; }
+    public string UnitNumber { get; set; } = string.Empty;
+    public string PropertyName { get; set; } = string.Empty;
+    public string PropertyAddress { get; set; } = string.Empty;
+    public string TenantName { get; set; } = string.Empty;
+    public string TenantPhone { get; set; } = string.Empty;
+    public string TenantEmail { get; set; } = string.Empty;
+    public DateTime? RequestedStartDate { get; set; }
+    public DateTime? RequestedEndDate { get; set; }
+    public decimal MonthlyRent { get; set; }
+    public string? Notes { get; set; }
+    public string Status { get; set; } = string.Empty;
+    public DateTime CreatedAt { get; set; }
+    public bool HasScreening { get; set; }
+    public string? ScreeningStatus { get; set; }
+    public DateTime? ScreeningDate { get; set; }
+    public DateTime? UpdatedAt { get; set; }
 }

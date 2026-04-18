@@ -1,0 +1,94 @@
+﻿@model RentEase.MVC.ViewModels.CreateLeaseAgreementViewModel
+@{
+    ViewData["Title"] = "Create Lease Agreement";
+}
+
+<div class="row justify-content-center">
+    <div class="col-md-8">
+        <div class="card shadow-sm">
+            <div class="card-header bg-success text-white">
+                <h4 class="mb-0"><i class="fa fa-file-signature me-2"></i>Create Lease Agreement</h4>
+            </div>
+            <div class="card-body">
+                <div class="alert alert-info mb-4">
+                    <div class="row">
+                        <div class="col-md-4"><strong>Unit:</strong> @Model.UnitNumber</div>
+                        <div class="col-md-4"><strong>Property:</strong> @Model.PropertyName</div>
+                        <div class="col-md-4"><strong>Tenant:</strong> @Model.TenantName</div>
+                    </div>
+                </div>
+
+                <form asp-action="Create" method="post">
+                    @Html.AntiForgeryToken()
+                    <input type="hidden" asp-for="ApplicationId" />
+                    <input type="hidden" asp-for="ScreeningId" />
+                    <input type="hidden" asp-for="UnitId" />
+                    <input type="hidden" asp-for="TenantId" />
+
+                    <div class="row g-3 mb-3">
+                        <div class="col-md-6">
+                            <label asp-for="LeaseStartDate" class="form-label"></label>
+                            <input asp-for="LeaseStartDate" type="date" class="form-control" />
+                            <span asp-validation-for="LeaseStartDate" class="text-danger small"></span>
+                        </div>
+                        <div class="col-md-6">
+                            <label asp-for="LeaseEndDate" class="form-label"></label>
+                            <input asp-for="LeaseEndDate" type="date" class="form-control" />
+                            <span asp-validation-for="LeaseEndDate" class="text-danger small"></span>
+                        </div>
+                    </div>
+
+                    <div class="row g-3 mb-3">
+                        <div class="col-md-6">
+                            <label asp-for="MonthlyRent" class="form-label"></label>
+                            <div class="input-group">
+                                <span class="input-group-text">BD</span>
+                                <input asp-for="MonthlyRent" class="form-control" />
+                            </div>
+                            <span asp-validation-for="MonthlyRent" class="text-danger small"></span>
+                        </div>
+                        <div class="col-md-6">
+                            <label asp-for="SecurityDeposit" class="form-label"></label>
+                            <div class="input-group">
+                                <span class="input-group-text">BD</span>
+                                <input asp-for="SecurityDeposit" class="form-control" />
+                            </div>
+                            <span asp-validation-for="SecurityDeposit" class="text-danger small"></span>
+                        </div>
+                    </div>
+
+                    <div class="mb-3">
+                        <label asp-for="LateFeePerDay" class="form-label"></label>
+                        <div class="input-group">
+                            <span class="input-group-text">BD</span>
+                            <input asp-for="LateFeePerDay" class="form-control" />
+                        </div>
+                    </div>
+
+                    <div class="mb-3">
+                        <label asp-for="TermsAndConditions" class="form-label"></label>
+                        <textarea asp-for="TermsAndConditions" class="form-control" rows="5"></textarea>
+                    </div>
+
+                    <div class="mb-4">
+                        <label asp-for="SpecialClauses" class="form-label"></label>
+                        <textarea asp-for="SpecialClauses" class="form-control" rows="3" placeholder="Any special agreements or clauses..."></textarea>
+                    </div>
+
+                    <div class="d-flex gap-2">
+                        <button type="submit" class="btn btn-success flex-fill">
+                            <i class="fa fa-save me-1"></i> Create Agreement
+                        </button>
+                        <a asp-controller="Screening" asp-action="Manage" class="btn btn-outline-secondary">Cancel</a>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    @{
+        await Html.RenderPartialAsync("_ValidationScriptsPartial");
+    }
+}
