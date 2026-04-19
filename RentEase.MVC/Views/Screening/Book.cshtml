@@ -1,6 +1,8 @@
-﻿@model RentEase.MVC.ViewModels.BookScreeningViewModel
+﻿@using RentEase.MVC.ViewModels
+@model BookScreeningViewModel
 @{
     ViewData["Title"] = "Book Screening Appointment";
+    var maxDate = Model.LeaseStartDate.AddDays(-1).ToString("yyyy-MM-dd");
 }
 
 <div class="row justify-content-center">
@@ -12,26 +14,33 @@
             <div class="card-body">
                 <div class="alert alert-info mb-4">
                     <strong>Unit:</strong> @Model.UnitNumber &nbsp;|&nbsp;
-                    <strong>Property:</strong> @Model.PropertyName &nbsp;|&nbsp;
-                    <strong>Rent:</strong> BD @Model.MonthlyRent?.ToString("N0") /month
+                    <strong>Property:</strong> @Model.PropertyName &nbsp;|&brvbar;
+                    <strong>Rent:</strong> BD @Model.MonthlyRent?.ToString("N0") /month<br />
+                    <strong>Lease Start Date:</strong> @Model.LeaseStartDate.ToString("dd MMM yyyy")
                 </div>
 
                 <form asp-action="Book" method="post">
                     @Html.AntiForgeryToken()
                     <input type="hidden" asp-for="ApplicationId" />
                     <input type="hidden" asp-for="UnitId" />
+                    <input type="hidden" asp-for="LeaseStartDate" />
 
                     <div class="mb-3">
                         <label asp-for="PreferredDate" class="form-label"></label>
-                        <input asp-for="PreferredDate" type="date" class="form-control" min="@DateTime.Now.AddDays(1).ToString("yyyy-MM-dd")" />
+                        <input asp-for="PreferredDate" type="date" class="form-control"
+                               max="@maxDate"
+                               placeholder="dd/mm/yyyy" />
                         <span asp-validation-for="PreferredDate" class="text-danger small"></span>
+                        <small class="form-text text-muted">Please choose a date before the lease start date.</small>
                     </div>
 
                     <div class="mb-3">
                         <label asp-for="PreferredTime" class="form-label"></label>
-                        <select asp-for="PreferredTime" class="form-select" asp-items="@(new SelectList(Model.AvailableTimeSlots))">
-                        </select>
+                        <input asp-for="PreferredTime" type="time" class="form-control"
+                               step="900" min="08:00" max="20:00"
+                               placeholder="HH:MM (e.g., 14:30)" />
                         <span asp-validation-for="PreferredTime" class="text-danger small"></span>
+                        <small class="form-text text-muted">Available Saturday–Thursday, 8:00 AM – 8:00 PM (15‑minute increments).</small>
                     </div>
 
                     <div class="mb-4">
@@ -49,7 +58,7 @@
                 </form>
             </div>
             <div class="card-footer text-muted small">
-                <i class="fa fa-info-circle me-1"></i> Once requested, our property manager will confirm your appointment time.
+                <i class="fa fa-info-circle me-1"></i> Once requested, our property manager will confirm your appointment.
             </div>
         </div>
     </div>
@@ -59,4 +68,18 @@
     @{
         await Html.RenderPartialAsync("_ValidationScriptsPartial");
     }
+    <script>
+        // Additional client‑side validation to ensure date is before lease start date
+        $(document).ready(function () {
+            var leaseStartDate = new Date('@Model.LeaseStartDate.ToString("yyyy-MM-dd")');
+            $("#PreferredDate").on("change", function () {
+                var selectedDate = new Date(this.value);
+                if (selectedDate >= leaseStartDate) {
+                    this.setCustomValidity("Screening must be before the lease start date.");
+                } else {
+                    this.setCustomValidity("");
+                }
+            });
+        });
+    </script>
 }

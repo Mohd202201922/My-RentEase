@@ -32,10 +32,18 @@ public partial class LeaseApplication
     public DateTime CreatedAt { get; set; }
 
     [StringLength(50)]
-    public string? Status { get; set; }
+    public string? Status { get; set; }  // Screening, Approved, Rejected, Renewal, Terminated
 
     [Column(TypeName = "datetime")]
     public DateTime? UpdatedAt { get; set; }
+
+    // Payment workflow fields
+    public bool IsPaymentApproved { get; set; } = false;
+    public DateTime? PaymentApprovedAt { get; set; }
+    public DateTime? PaymentDate { get; set; }
+    public string? PaymentTransactionId { get; set; }
+    [Column(TypeName = "decimal(10,2)")]
+    public decimal? PaymentAmount { get; set; }
 
     [InverseProperty("Application")]
     public virtual ICollection<Document> Documents { get; set; } = new List<Document>();

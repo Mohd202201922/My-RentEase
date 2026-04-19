@@ -1,0 +1,8 @@
+﻿@model int
+
+@if (Model > 0)
+{
+    <span class="badge bg-danger rounded-pill" style="position: absolute; top: 0; right: 0; font-size: 0.7rem; transform: translate(50%, -25%);">
+        @(Model > 9 ? "9+" : Model.ToString())
+    </span>
+}

@@ -89,9 +89,10 @@
                     <ul class="navbar-nav">
                         @if (User.Identity?.IsAuthenticated == true)
                         {
-                            <li class="nav-item">
+                            <li class="nav-item position-relative">
                                 <a class="nav-link" asp-controller="Notifications" asp-action="Index">
                                     <i class="fa fa-bell"></i>
+                                    @await Component.InvokeAsync("NotificationBadge")
                                 </a>
                             </li>
                             <li class="nav-item dropdown">
@@ -155,5 +156,15 @@
     <script src="~/lib/bootstrap/js/bootstrap.bundle.min.js"></script>
     <script src="~/js/site.js" asp-append-version="true"></script>
     @await RenderSectionAsync("Scripts", required: false)
+    <script>
+        document.addEventListener("DOMContentLoaded", function () {
+            document.querySelectorAll('input[type="date"]').forEach(el => {
+                if (!el.value) el.placeholder = "YYYY-MM-DD";
+            });
+            document.querySelectorAll('input[type="time"]').forEach(el => {
+                if (!el.value) el.placeholder = "HH:MM";
+            });
+        });
+    </script>
 </body>
 </html>

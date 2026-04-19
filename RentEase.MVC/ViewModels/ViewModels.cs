@@ -94,7 +94,7 @@ public class UnitListViewModel
 }
 
 // ── Lease Application ────────────────────────────────
-public class CreateLeaseApplicationViewModel
+public class CreateLeaseApplicationViewModel : IValidatableObject
 {
     public int UnitId { get; set; }
     public string UnitNumber { get; set; } = string.Empty;
@@ -103,16 +103,30 @@ public class CreateLeaseApplicationViewModel
 
     [Required]
     [DataType(DataType.Date)]
-    [Display(Name = "Preferred Start Date")]
+    [Display(Name = "Start Date")]
     public DateTime RequestedStartDate { get; set; } = DateTime.Now.AddDays(7);
 
     [Required]
     [DataType(DataType.Date)]
-    [Display(Name = "Preferred End Date")]
+    [Display(Name = "End Date")]
     public DateTime RequestedEndDate { get; set; } = DateTime.Now.AddDays(7).AddYears(1);
 
     [StringLength(500)]
     public string? Notes { get; set; }
+
+    public DateTime MinStartDate { get; set; }
+
+    public IEnumerable<ValidationResult> Validate(ValidationContext validationContext)
+    {
+        if (RequestedEndDate <= RequestedStartDate)
+        {
+            yield return new ValidationResult("End date must be after start date (minimum lease period is one day).", new[] { nameof(RequestedEndDate) });
+        }
+        else if (RequestedEndDate.Date == RequestedStartDate.Date)
+        {
+            yield return new ValidationResult("End date cannot be the same as start date. Please choose a date at least one day later.", new[] { nameof(RequestedEndDate) });
+        }
+    }
 }
 
 public class LeaseApplicationListViewModel
@@ -126,6 +140,8 @@ public class LeaseApplicationListViewModel
     public string Status { get; set; } = string.Empty;
     public string? Notes { get; set; }
     public DateTime CreatedAt { get; set; }
+    public bool IsPaymentApproved { get; set; }
+    public DateTime? PaymentDate { get; set; }
 }
 
 public class LeaseApplicationDetailViewModel
@@ -146,7 +162,9 @@ public class LeaseApplicationDetailViewModel
     public bool HasScreening { get; set; }
     public string? ScreeningStatus { get; set; }
     public DateTime? ScreeningDate { get; set; }
-    public DateTime? UpdatedAt { get; set; }
+    public int? ScreeningId { get; set; }
+    public bool IsPaymentApproved { get; set; }
+    public DateTime? PaymentDate { get; set; }
 }
 
 // ── Maintenance ──────────────────────────────────────
@@ -307,7 +325,7 @@ public class PaymentListViewModel
     public string? Notes { get; set; }
 }
 
-// ── SCREENING APPOINTMENT VIEW MODELS ────────────────
+// ── SCREENING APPOINTMENT ───────────────────────────
 public class BookScreeningViewModel
 {
     public int ApplicationId { get; set; }
@@ -316,14 +334,18 @@ public class BookScreeningViewModel
     public string PropertyName { get; set; } = string.Empty;
     public decimal? MonthlyRent { get; set; }
 
+    // New: the lease start date from the application
+    public DateTime LeaseStartDate { get; set; }
+
     [Required]
     [DataType(DataType.Date)]
     [Display(Name = "Preferred Date")]
-    public DateTime PreferredDate { get; set; } = DateTime.Now.AddDays(3);
+    public DateTime? PreferredDate { get; set; }  // nullable to allow empty
 
     [Required]
+    [DataType(DataType.Time)]
     [Display(Name = "Preferred Time")]
-    public string PreferredTime { get; set; } = "10:00";
+    public string? PreferredTime { get; set; }   // store as "HH:mm"
 
     [StringLength(500)]
     [Display(Name = "Additional Notes")]
@@ -363,18 +385,9 @@ public class ManageScreeningViewModel
     public DateTime EndTime { get; set; }
     public string CurrentStatus { get; set; } = string.Empty;
     public string? Notes { get; set; }
-
-    [Display(Name = "New Status")]
-    public string NewStatus { get; set; } = string.Empty;
-
-    [Display(Name = "Manager Notes")]
     public string? ManagerNotes { get; set; }
-
-    [Display(Name = "Reschedule Date")]
-    [DataType(DataType.Date)]
+    public string NewStatus { get; set; } = string.Empty;
     public DateTime? RescheduleDate { get; set; }
-
-    [Display(Name = "Reschedule Time")]
     public string? RescheduleTime { get; set; }
 
     public List<string> AvailableStatuses { get; } = new List<string>
@@ -388,8 +401,31 @@ public class ManageScreeningViewModel
     };
 }
 
-// ── LEASE AGREEMENT VIEW MODELS ──────────────────────
-public class CreateLeaseAgreementViewModel
+public class EditScreeningViewModel
+{
+    public int ScreeningId { get; set; }
+    public int ApplicationId { get; set; }
+    public string UnitNumber { get; set; } = string.Empty;
+    public string PropertyName { get; set; } = string.Empty;
+
+    [Required]
+    [DataType(DataType.Date)]
+    public DateTime PreferredDate { get; set; } = DateTime.Now.AddDays(3);
+
+    [Required]
+    public string PreferredTime { get; set; } = "10:00";
+
+    [StringLength(500)]
+    public string? Notes { get; set; }
+
+    public List<string> AvailableTimeSlots { get; } = new List<string>
+    {
+        "09:00", "10:00", "11:00", "13:00", "14:00", "15:00", "16:00"
+    };
+}
+
+// ── LEASE AGREEMENT ─────────────────────────────────
+public class CreateLeaseAgreementViewModel : IValidatableObject
 {
     public int ApplicationId { get; set; }
     public int ScreeningId { get; set; }
@@ -425,6 +461,18 @@ public class CreateLeaseAgreementViewModel
 
     [Display(Name = "Special Clauses")]
     public string? SpecialClauses { get; set; }
+
+    public IEnumerable<ValidationResult> Validate(ValidationContext validationContext)
+    {
+        if (LeaseEndDate <= LeaseStartDate)
+        {
+            yield return new ValidationResult("End date must be after start date.", new[] { nameof(LeaseEndDate) });
+        }
+        else if (LeaseEndDate.Date == LeaseStartDate.Date)
+        {
+            yield return new ValidationResult("End date must be at least one day after start date.", new[] { nameof(LeaseEndDate) });
+        }
+    }
 }
 
 public class LeaseAgreementViewModel
@@ -462,4 +510,32 @@ public class LeaseAgreementListViewModel
     public decimal MonthlyRent { get; set; }
     public string Status { get; set; } = string.Empty;
     public DateTime CreatedAt { get; set; }
+}
+
+// ── PAYMENT (Card) ───────────────────────────────────
+public class PaymentViewModel
+{
+    public int ApplicationId { get; set; }
+    public string UnitNumber { get; set; } = string.Empty;
+    public string PropertyName { get; set; } = string.Empty;
+    public decimal Amount { get; set; }
+
+    [Required]
+    [CreditCard]
+    [Display(Name = "Card Number")]
+    public string CardNumber { get; set; } = string.Empty;
+
+    [Required]
+    [Display(Name = "Cardholder Name")]
+    public string CardholderName { get; set; } = string.Empty;
+
+    [Required]
+    [RegularExpression(@"^(0[1-9]|1[0-2])\/([0-9]{2})$", ErrorMessage = "MM/YY format")]
+    [Display(Name = "Expiry (MM/YY)")]
+    public string Expiry { get; set; } = string.Empty;
+
+    [Required]
+    [StringLength(3, MinimumLength = 3)]
+    [Display(Name = "CVV")]
+    public string Cvv { get; set; } = string.Empty;
 }

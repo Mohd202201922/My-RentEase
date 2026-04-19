@@ -10,7 +10,6 @@
                 <h4 class="mb-0"><i class="fa fa-file-alt me-2"></i>Lease Application</h4>
             </div>
             <div class="card-body">
-                <!-- Unit summary -->
                 <div class="alert alert-info mb-4">
                     <strong>Unit:</strong> @Model.UnitNumber &nbsp;|&nbsp;
                     <strong>Property:</strong> @Model.PropertyName &nbsp;|&nbsp;
@@ -19,14 +18,14 @@
 
                 <form asp-action="Apply" method="post">
                     @Html.AntiForgeryToken()
-                    <input asp-for="UnitId" type="hidden" />
-                    <input asp-for="UnitNumber" type="hidden" />
-                    <input asp-for="PropertyName" type="hidden" />
+                    <input type="hidden" asp-for="UnitId" />
+                    <input type="hidden" asp-for="UnitNumber" />
+                    <input type="hidden" asp-for="PropertyName" />
 
                     <div class="row g-3 mb-3">
                         <div class="col-md-6">
                             <label asp-for="RequestedStartDate" class="form-label"></label>
-                            <input asp-for="RequestedStartDate" type="date" class="form-control" />
+                            <input asp-for="RequestedStartDate" type="date" class="form-control" min="@Model.MinStartDate.ToString("yyyy-MM-dd")" />
                             <span asp-validation-for="RequestedStartDate" class="text-danger small"></span>
                         </div>
                         <div class="col-md-6">
@@ -37,8 +36,7 @@
                     </div>
                     <div class="mb-4">
                         <label asp-for="Notes" class="form-label"></label>
-                        <textarea asp-for="Notes" class="form-control" rows="3"
-                                  placeholder="Any special requirements or notes..."></textarea>
+                        <textarea asp-for="Notes" class="form-control" rows="3" placeholder="Any special requirements or notes..."></textarea>
                         <span asp-validation-for="Notes" class="text-danger small"></span>
                     </div>
 
@@ -55,5 +53,32 @@
 </div>
 
 @section Scripts {
-    @{await Html.RenderPartialAsync("_ValidationScriptsPartial");}
+    @{
+        await Html.RenderPartialAsync("_ValidationScriptsPartial");
+    }
+    <script>
+        $(document).ready(function () {
+            // Custom validation: end date must be after start date (strictly greater)
+            $.validator.addMethod("endDateAfterStart", function (value, element) {
+                var startDate = new Date($("#RequestedStartDate").val());
+                var endDate = new Date(value);
+                if (isNaN(startDate.getTime()) || isNaN(endDate.getTime())) return true;
+                return endDate > startDate;
+            }, "End date must be after start date (minimum lease period is one day).");
+
+            // Additional check: end date cannot be the same as start date (redundant but clearer)
+            $.validator.addMethod("notSameDay", function (value, element) {
+                var startDate = new Date($("#RequestedStartDate").val());
+                var endDate = new Date(value);
+                if (isNaN(startDate.getTime()) || isNaN(endDate.getTime())) return true;
+                return endDate.toDateString() !== startDate.toDateString();
+            }, "End date cannot be the same as start date. Please choose a later date.");
+
+            // Apply rules to the end date field
+            $("#RequestedEndDate").rules("add", {
+                endDateAfterStart: true,
+                notSameDay: true
+            });
+        });
+    </script>
 }

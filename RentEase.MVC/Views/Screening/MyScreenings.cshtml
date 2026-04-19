@@ -1,11 +1,26 @@
-﻿@model List<RentEase.MVC.ViewModels.ScreeningListViewModel>
+﻿@using RentEase.MVC.ViewModels
+@model List<ScreeningListViewModel>
 @{
     ViewData["Title"] = "My Screenings";
+    var currentStatus = ViewBag.Status as string;
 }
 
 <div class="d-flex justify-content-between align-items-center mb-3">
     <h2><i class="fa fa-calendar-alt me-2"></i>My Screening Appointments</h2>
 </div>
+
+<!-- Status filter tabs -->
+<ul class="nav nav-tabs mb-3">
+    <li class="nav-item">
+        <a class="nav-link @(string.IsNullOrEmpty(currentStatus) ? "active" : "")" asp-action="MyScreenings">All</a>
+    </li>
+    @foreach (var s in new[] { "Pending", "Confirmed", "Completed", "Cancelled", "Rescheduled" })
+    {
+        <li class="nav-item">
+            <a class="nav-link @(currentStatus == s ? "active" : "")" asp-action="MyScreenings" asp-route-status="@s">@s</a>
+        </li>
+    }
+</ul>
 
 @if (!Model.Any())
 {
@@ -25,7 +40,7 @@ else
                     <th>Scheduled Date</th>
                     <th>Status</th>
                     <th>Requested</th>
-                    <th></th>
+                    <th>Actions</th>
                 </tr>
             </thead>
             <tbody>
@@ -46,10 +61,23 @@ else
                         <td><span class="badge bg-@statusColor">@s.Status</span></td>
                         <td>@s.CreatedAt.ToString("dd MMM yyyy")</td>
                         <td>
-                            @if (s.Status == "Confirmed")
+                            @if (s.Status == "Pending" || s.Status == "Confirmed")
+                            {
+                                <a asp-action="Edit" asp-route-id="@s.ScreeningId" class="btn btn-sm btn-outline-primary">
+                                    <i class="fa fa-edit"></i> Edit
+                                </a>
+                                <form asp-action="Cancel" method="post" class="d-inline" onsubmit="return confirm('Cancel this screening?');">
+                                    @Html.AntiForgeryToken()
+                                    <input type="hidden" name="screeningId" value="@s.ScreeningId" />
+                                    <button type="submit" class="btn btn-sm btn-outline-danger">
+                                        <i class="fa fa-times"></i> Cancel
+                                    </button>
+                                </form>
+                            }
+                            else
                             {
                                 <button type="button" class="btn btn-sm btn-outline-info" data-bs-toggle="modal" data-bs-target="#notesModal-@s.ScreeningId">
-                                    <i class="fa fa-info-circle"></i> Details
+                                    Details
                                 </button>
                             }
                         </td>
@@ -65,7 +93,7 @@ else
                                 </div>
                                 <div class="modal-body">
                                     <p><strong>Date & Time:</strong> @s.ScheduledDate.ToString("dd MMM yyyy HH:mm")</p>
-                                    <p><strong>Status:</strong> <span class="badge bg-success">@s.Status</span></p>
+                                    <p><strong>Status:</strong> <span class="badge bg-@statusColor">@s.Status</span></p>
                                     @if (!string.IsNullOrEmpty(s.Notes))
                                     {
                                         <p><strong>Your Notes:</strong> @s.Notes</p>

@@ -1,0 +1,71 @@
+﻿@using RentEase.MVC.ViewModels
+@model PaymentViewModel
+@{
+    ViewData["Title"] = "Make Payment";
+}
+
+<div class="row justify-content-center">
+    <div class="col-md-6">
+        <div class="card shadow-sm">
+            <div class="card-header bg-primary text-white">
+                <h4 class="mb-0"><i class="fa fa-credit-card me-2"></i>Complete Payment</h4>
+            </div>
+            <div class="card-body">
+                <div class="alert alert-info">
+                    <strong>Unit:</strong> @Model.UnitNumber<br />
+                    <strong>Property:</strong> @Model.PropertyName<br />
+                    <strong>Amount to Pay:</strong> <span class="fw-bold">BD @Model.Amount.ToString("N2")</span>
+                </div>
+
+                <form asp-action="ProcessPayment" method="post">
+                    @Html.AntiForgeryToken()
+                    <input type="hidden" asp-for="ApplicationId" />
+                    <input type="hidden" asp-for="UnitNumber" />
+                    <input type="hidden" asp-for="PropertyName" />
+                    <input type="hidden" asp-for="Amount" />
+
+                    <div class="mb-3">
+                        <label asp-for="CardNumber" class="form-label"></label>
+                        <div class="input-group">
+                            <span class="input-group-text"><i class="fa fa-credit-card"></i></span>
+                            <input asp-for="CardNumber" class="form-control" placeholder="1234 5678 9012 3456" />
+                        </div>
+                        <span asp-validation-for="CardNumber" class="text-danger small"></span>
+                    </div>
+
+                    <div class="mb-3">
+                        <label asp-for="CardholderName" class="form-label"></label>
+                        <input asp-for="CardholderName" class="form-control" placeholder="Name as on card" />
+                        <span asp-validation-for="CardholderName" class="text-danger small"></span>
+                    </div>
+
+                    <div class="row g-3 mb-4">
+                        <div class="col-md-6">
+                            <label asp-for="Expiry" class="form-label"></label>
+                            <input asp-for="Expiry" class="form-control" placeholder="MM/YY" />
+                            <span asp-validation-for="Expiry" class="text-danger small"></span>
+                        </div>
+                        <div class="col-md-6">
+                            <label asp-for="Cvv" class="form-label"></label>
+                            <input asp-for="Cvv" class="form-control" placeholder="123" />
+                            <span asp-validation-for="Cvv" class="text-danger small"></span>
+                        </div>
+                    </div>
+
+                    <button type="submit" class="btn btn-success w-100">
+                        <i class="fa fa-lock me-1"></i> Pay BD @Model.Amount.ToString("N2")
+                    </button>
+                </form>
+            </div>
+            <div class="card-footer text-muted small">
+                <i class="fa fa-shield-alt me-1"></i> Your payment is secure and encrypted.
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    @{
+        await Html.RenderPartialAsync("_ValidationScriptsPartial");
+    }
+}
