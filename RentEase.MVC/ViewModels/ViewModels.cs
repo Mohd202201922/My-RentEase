@@ -519,6 +519,10 @@ public class PaymentViewModel
     public string UnitNumber { get; set; } = string.Empty;
     public string PropertyName { get; set; } = string.Empty;
     public decimal Amount { get; set; }
+    public DateTime? LeaseStartDate { get; set; }
+    public DateTime? LeaseEndDate { get; set; }
+    public decimal MonthlyRent { get; set; }
+    public decimal SecurityDeposit { get; set; }
 
     [Required]
     [CreditCard]

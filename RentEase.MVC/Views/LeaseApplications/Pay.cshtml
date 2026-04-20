@@ -1,71 +1,355 @@
 ﻿@using RentEase.MVC.ViewModels
 @model PaymentViewModel
 @{
-    ViewData["Title"] = "Make Payment";
+    ViewData["Title"] = "Complete Payment";
 }
 
-<div class="row justify-content-center">
-    <div class="col-md-6">
-        <div class="card shadow-sm">
-            <div class="card-header bg-primary text-white">
-                <h4 class="mb-0"><i class="fa fa-credit-card me-2"></i>Complete Payment</h4>
-            </div>
-            <div class="card-body">
-                <div class="alert alert-info">
-                    <strong>Unit:</strong> @Model.UnitNumber<br />
-                    <strong>Property:</strong> @Model.PropertyName<br />
-                    <strong>Amount to Pay:</strong> <span class="fw-bold">BD @Model.Amount.ToString("N2")</span>
+<style>
+    .payment-wrapper {
+        display: flex;
+        gap: 30px;
+        max-width: 1100px;
+        margin: 0 auto;
+        flex-wrap: wrap;
+    }
+
+    .payment-summary {
+        flex: 1;
+        min-width: 280px;
+        background: white;
+        border-radius: 16px;
+        padding: 28px;
+        box-shadow: 0 8px 24px rgba(0,0,0,0.05);
+        border: 1px solid #e9ecef;
+    }
+
+    .payment-form-card {
+        flex: 1.4;
+        min-width: 340px;
+        background: white;
+        border-radius: 16px;
+        padding: 28px;
+        box-shadow: 0 8px 24px rgba(0,0,0,0.05);
+        border: 1px solid #e9ecef;
+    }
+
+        .payment-summary h3, .payment-form-card h3 {
+            font-size: 1.3rem;
+            font-weight: 600;
+            color: #1e293b;
+            margin-bottom: 20px;
+            padding-bottom: 12px;
+            border-bottom: 3px solid #0d6efd;
+            display: inline-block;
+        }
+
+    .summary-table {
+        width: 100%;
+        border-collapse: collapse;
+        margin: 16px 0;
+    }
+
+        .summary-table td {
+            padding: 12px 8px;
+            border-bottom: 1px solid #f1f5f9;
+            font-size: 0.9rem;
+        }
+
+            .summary-table td:first-child {
+                color: #475569;
+                width: 45%;
+            }
+
+    .total-row td {
+        font-weight: 700;
+        font-size: 1.1rem;
+        color: #0d6efd;
+        border-top: 2px solid #0d6efd;
+        border-bottom: none;
+        padding-top: 16px;
+    }
+
+    .terms-box, .privacy-box {
+        background: #f8fafc;
+        border: 1px solid #e2e8f0;
+        border-radius: 12px;
+        padding: 14px;
+        margin: 16px 0;
+        /* Removed max-height and overflow-y */
+        font-size: 0.85rem;
+        color: #334155;
+        line-height: 1.5;
+    }
+
+    .card-visual {
+        background: linear-gradient(135deg, #1e293b 0%, #0f172a 100%);
+        border-radius: 20px;
+        padding: 24px;
+        color: white;
+        margin-bottom: 28px;
+        box-shadow: 0 12px 24px -8px rgba(0,0,0,0.2);
+        position: relative;
+        overflow: hidden;
+    }
+
+        .card-visual::before {
+            content: '';
+            position: absolute;
+            top: -40px;
+            right: -40px;
+            width: 140px;
+            height: 140px;
+            background: rgba(255,255,255,0.03);
+            border-radius: 50%;
+        }
+
+    .card-chip {
+        width: 48px;
+        height: 36px;
+        background: linear-gradient(135deg, #fbbf24, #d97706);
+        border-radius: 8px;
+        margin-bottom: 28px;
+    }
+
+    .card-number-display {
+        font-size: 1.35rem;
+        letter-spacing: 4px;
+        font-family: 'Courier New', monospace;
+        margin-bottom: 20px;
+        word-break: break-all;
+    }
+
+    .card-meta {
+        display: flex;
+        justify-content: space-between;
+        font-size: 0.8rem;
+        opacity: 0.85;
+    }
+
+    .form-group {
+        margin-bottom: 20px;
+    }
+
+        .form-group label {
+            display: block;
+            font-size: 0.85rem;
+            font-weight: 600;
+            color: #334155;
+            margin-bottom: 6px;
+        }
+
+        .form-group input {
+            width: 100%;
+            padding: 12px 14px;
+            border: 2px solid #e2e8f0;
+            border-radius: 12px;
+            font-size: 0.95rem;
+            transition: all 0.2s;
+            background: #ffffff;
+        }
+
+            .form-group input:focus {
+                border-color: #0d6efd;
+                outline: none;
+                box-shadow: 0 0 0 3px rgba(13,110,253,0.1);
+            }
+
+    .row-2cols {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 16px;
+    }
+
+    .btn-pay {
+        width: 100%;
+        padding: 14px;
+        background: #0d6efd;
+        color: white;
+        border: none;
+        border-radius: 40px;
+        font-size: 1rem;
+        font-weight: 600;
+        cursor: pointer;
+        margin-top: 12px;
+        transition: background 0.2s;
+    }
+
+        .btn-pay:hover {
+            background: #0b5ed7;
+        }
+
+    .error-message {
+        color: #dc2626;
+        font-size: 0.8rem;
+        margin-top: 6px;
+    }
+
+    .success-message {
+        background: #d1fae5;
+        color: #065f46;
+        padding: 12px;
+        border-radius: 12px;
+        margin-bottom: 20px;
+    }
+
+    @@media (max-width: 768px) {
+        .payment-wrapper {
+            flex-direction: column;
+        }
+
+        .row-2cols {
+            grid-template-columns: 1fr;
+        }
+    }
+</style>
+
+<div class="container mt-4">
+    <h2 class="mb-4" style="color: #1e293b;">💳 Complete Your Lease Payment</h2>
+
+    @if (TempData["PaymentSuccess"] != null)
+    {
+        <div class="success-message">
+            ✅ @TempData["PaymentSuccess"]
+        </div>
+        <div class="text-center mt-4">
+            <a asp-action="Details" asp-route-id="@Model.ApplicationId" class="btn btn-outline-primary">Back to Application</a>
+        </div>
+    }
+    else
+    {
+        <div class="payment-wrapper">
+            <!-- LEFT COLUMN: Lease Summary + Terms & Privacy (no scroll) -->
+            <div class="payment-summary">
+                <h3>📄 Lease Summary</h3>
+                <table class="summary-table">
+                    <tr><td>Unit</td><td><strong>@Model.UnitNumber</strong></td></tr>
+                    <tr><td>Property</td><td>@Model.PropertyName</td></tr>
+                    <tr><td>Lease Start</td><td>@(Model.LeaseStartDate?.ToString("dd MMM yyyy") ?? "—")</td></tr>
+                    <tr><td>Lease End</td><td>@(Model.LeaseEndDate?.ToString("dd MMM yyyy") ?? "—")</td></tr>
+                    <tr><td>Monthly Rent</td><td>BD @Model.MonthlyRent.ToString("N2")</td></tr>
+                    <tr><td>Security Deposit</td><td>BD @Model.SecurityDeposit.ToString("N2")</td></tr>
+                    <tr class="total-row"><td>Total Due Now</td><td>BD @Model.Amount.ToString("N2")</td></tr>
+                </table>
+
+                <h3>📜 Terms & Conditions</h3>
+                <div class="terms-box">
+                    <p><strong>1. Lease Term</strong><br />The tenant agrees to lease the property for the period stated above. Rent is due monthly on the first day of each month.</p>
+                    <p><strong>2. Payment</strong><br />Security deposit and first month's rent must be paid before move‑in. Late fee of BD 10 per day applies after 5 days grace period.</p>
+                    <p><strong>3. Maintenance</strong><br />Tenant is responsible for minor repairs (e.g., light bulbs, filters). Major structural repairs are landlord's responsibility.</p>
+                    <p><strong>4. Termination</strong><br />Either party may terminate with 30 days written notice. Early termination fee equals two months' rent.</p>
+                    <p><strong>5. Governing Law</strong><br />This agreement is governed by the laws of the Kingdom of Bahrain.</p>
                 </div>
 
-                <form asp-action="ProcessPayment" method="post">
+                <h3>🔒 Privacy Policy</h3>
+                <div class="privacy-box">
+                    <p>We collect your personal information (name, email, phone) and payment details solely for the purpose of processing your lease and rent payments. We do not share your data with third parties except as required by law. Your payment information is encrypted and stored securely. You may request deletion of your data after lease termination.</p>
+                </div>
+            </div>
+
+            <!-- RIGHT COLUMN: Payment Form (always visible) -->
+            <div class="payment-form-card">
+                <h3>💳 Card Payment</h3>
+
+                <!-- Card Visual -->
+                <div class="card-visual">
+                    <div class="card-chip"></div>
+                    <div class="card-number-display" id="cardDisplay">•••• •••• •••• ••••</div>
+                    <div class="card-meta">
+                        <span id="nameDisplay">FULL NAME</span>
+                        <span id="expiryDisplay">MM/YY</span>
+                    </div>
+                </div>
+
+                @if (!ViewData.ModelState.IsValid && ViewData.ModelState.Any(m => m.Value.Errors.Any()))
+                {
+                    <div class="alert alert-danger">
+                        @foreach (var error in ViewData.ModelState.Values.SelectMany(v => v.Errors))
+                        {
+                            <p class="mb-0">❌ @error.ErrorMessage</p>
+                        }
+                    </div>
+                }
+
+                <form asp-action="ProcessPayment" method="post" id="paymentForm">
                     @Html.AntiForgeryToken()
                     <input type="hidden" asp-for="ApplicationId" />
                     <input type="hidden" asp-for="UnitNumber" />
                     <input type="hidden" asp-for="PropertyName" />
                     <input type="hidden" asp-for="Amount" />
+                    <input type="hidden" asp-for="LeaseStartDate" />
+                    <input type="hidden" asp-for="LeaseEndDate" />
+                    <input type="hidden" asp-for="MonthlyRent" />
+                    <input type="hidden" asp-for="SecurityDeposit" />
 
-                    <div class="mb-3">
-                        <label asp-for="CardNumber" class="form-label"></label>
-                        <div class="input-group">
-                            <span class="input-group-text"><i class="fa fa-credit-card"></i></span>
-                            <input asp-for="CardNumber" class="form-control" placeholder="1234 5678 9012 3456" />
-                        </div>
-                        <span asp-validation-for="CardNumber" class="text-danger small"></span>
+                    <div class="form-group">
+                        <label asp-for="CardNumber">Card Number</label>
+                        <input asp-for="CardNumber" id="cardInput" class="form-control" placeholder="1234 5678 9012 3456" maxlength="19" autocomplete="cc-number" />
+                        <span asp-validation-for="CardNumber" class="error-message"></span>
                     </div>
 
-                    <div class="mb-3">
-                        <label asp-for="CardholderName" class="form-label"></label>
-                        <input asp-for="CardholderName" class="form-control" placeholder="Name as on card" />
-                        <span asp-validation-for="CardholderName" class="text-danger small"></span>
+                    <div class="form-group">
+                        <label asp-for="CardholderName">Cardholder Name</label>
+                        <input asp-for="CardholderName" id="nameInput" class="form-control" placeholder="Name as on card" autocomplete="cc-name" />
+                        <span asp-validation-for="CardholderName" class="error-message"></span>
                     </div>
 
-                    <div class="row g-3 mb-4">
-                        <div class="col-md-6">
-                            <label asp-for="Expiry" class="form-label"></label>
-                            <input asp-for="Expiry" class="form-control" placeholder="MM/YY" />
-                            <span asp-validation-for="Expiry" class="text-danger small"></span>
+                    <div class="row-2cols">
+                        <div class="form-group">
+                            <label asp-for="Expiry">Expiry Date</label>
+                            <input asp-for="Expiry" id="expiryInput" class="form-control" placeholder="MM/YY" maxlength="5" autocomplete="cc-exp" />
+                            <span asp-validation-for="Expiry" class="error-message"></span>
                         </div>
-                        <div class="col-md-6">
-                            <label asp-for="Cvv" class="form-label"></label>
-                            <input asp-for="Cvv" class="form-control" placeholder="123" />
-                            <span asp-validation-for="Cvv" class="text-danger small"></span>
+                        <div class="form-group">
+                            <label asp-for="Cvv">CVV</label>
+                            <input asp-for="Cvv" id="cvvInput" class="form-control" placeholder="123" maxlength="3" autocomplete="cc-csc" />
+                            <span asp-validation-for="Cvv" class="error-message"></span>
                         </div>
                     </div>
 
-                    <button type="submit" class="btn btn-success w-100">
-                        <i class="fa fa-lock me-1"></i> Pay BD @Model.Amount.ToString("N2")
+                    <button type="submit" class="btn-pay" id="payButton">
+                        🔒 Pay BD @Model.Amount.ToString("N2")
                     </button>
                 </form>
             </div>
-            <div class="card-footer text-muted small">
-                <i class="fa fa-shield-alt me-1"></i> Your payment is secure and encrypted.
-            </div>
         </div>
-    </div>
+    }
 </div>
 
 @section Scripts {
     @{
         await Html.RenderPartialAsync("_ValidationScriptsPartial");
     }
-}
+    <script>
+        // Real‑time card preview formatting
+        const cardInput = document.getElementById('cardInput');
+        const nameInput = document.getElementById('nameInput');
+        const expiryInput = document.getElementById('expiryInput');
+        const cardDisplay = document.getElementById('cardDisplay');
+        const nameDisplay = document.getElementById('nameDisplay');
+        const expiryDisplay = document.getElementById('expiryDisplay');
+
+        if (cardInput) {
+            cardInput.addEventListener('input', function() {
+                let digits = this.value.replace(/\D/g, '').substring(0, 16);
+                this.value = digits.match(/.{1,4}/g)?.join(' ') || '';
+                let preview = digits.padEnd(16, '•').match(/.{1,4}/g).join(' ');
+                cardDisplay.textContent = preview;
+            });
+        }
+
+        if (nameInput) {
+            nameInput.addEventListener('input', function() {
+                nameDisplay.textContent = this.value.toUpperCase() || 'FULL NAME';
+            });
+        }
+
+        if (expiryInput) {
+            expiryInput.addEventListener('input', function() {
+                let v = this.value.replace(/\D/g, '').substring(0, 4);
+                if (v.length >= 3) v = v.substring(0,2) + '/' + v.substring(2);
+                this.value = v;
+                expiryDisplay.textContent = v || 'MM/YY';
+            });
+        }
+    </script>
+}0

@@ -63,7 +63,8 @@
                     </div>
                 }
 
-                @if (Model.Status == "Screening" && User.IsInRole("Tenant"))
+                @* Show warning alert only if tenant cannot pay yet *@
+                @if (Model.Status == "Screening" && User.IsInRole("Tenant") && !Model.IsPaymentApproved && !Model.PaymentDate.HasValue)
                 {
                     <div class="alert alert-warning">
                         <i class="fa fa-clock me-2"></i>
@@ -86,6 +87,36 @@
                     }
                 }
 
+                @if (User.IsInRole("PropertyManager") && Model.Status == "Screening")
+                {
+                    if (!Model.IsPaymentApproved)
+                    {
+                        <form asp-action="PermitPayment" method="post">
+                            @Html.AntiForgeryToken()
+                            <input type="hidden" name="applicationId" value="@Model.ApplicationId" />
+                            <button type="submit" class="btn btn-warning w-100 mb-3">
+                                <i class="fa fa-check-circle me-1"></i> Permit Payment
+                            </button>
+                        </form>
+                        <form asp-action="RejectApplication" method="post" class="mt-2">
+                            @Html.AntiForgeryToken()
+                            <input type="hidden" name="applicationId" value="@Model.ApplicationId" />
+                            <button type="submit" class="btn btn-danger w-100" onclick="return confirm('Reject this application?')">
+                                <i class="fa fa-times-circle me-1"></i> Reject Application
+                            </button>
+                        </form>
+                    }
+                    else
+                    {
+                        <div class="alert alert-success">
+                            <i class="fa fa-check-circle me-2"></i> Payment permission granted. The tenant can now proceed to pay.
+                        </div>
+                        <button class="btn btn-secondary w-100" disabled>
+                            <i class="fa fa-lock me-1"></i> Have Permission Pay
+                        </button>
+                    }
+                }
+
                 @if (Model.Status == "Screening" && Model.IsPaymentApproved && !Model.PaymentDate.HasValue && User.IsInRole("Tenant"))
                 {
                     <div class="alert alert-success">
@@ -95,17 +126,6 @@
                     <a asp-action="Pay" asp-route-id="@Model.ApplicationId" class="btn btn-success w-100 mb-3">
                         <i class="fa fa-credit-card me-1"></i> Pay Now
                     </a>
-                }
-
-                @if (User.IsInRole("PropertyManager") && Model.Status == "Screening" && Model.HasScreening && Model.ScreeningStatus == "Completed" && !Model.IsPaymentApproved)
-                {
-                    <form asp-action="ApprovePayment" method="post">
-                        @Html.AntiForgeryToken()
-                        <input type="hidden" name="applicationId" value="@Model.ApplicationId" />
-                        <button type="submit" class="btn btn-warning w-100 mb-3">
-                            <i class="fa fa-check-circle me-1"></i> Approve Payment
-                        </button>
-                    </form>
                 }
 
                 <div class="d-flex gap-2">

@@ -69,39 +69,26 @@ else
                         <td>@(a.RequestedStartDate?.ToString("dd MMM yyyy") ?? "-")</td>
                         <td><span class="badge bg-@badgeColor">@a.Status</span></td>
                         <td>@a.CreatedAt.ToString("dd MMM yyyy")</td>
-                        @if (User.IsInRole("PropertyManager"))
+                        @if (User.IsInRole("PropertyManager") && a.Status == "Approved")
                         {
                             <td onclick="event.stopPropagation();">
                                 <div class="d-flex gap-1">
-                                    @if (a.Status == "Screening")
-                                    {
-                                        <form asp-action="UpdateStatus" method="post">
-                                            @Html.AntiForgeryToken()
-                                            <input type="hidden" name="applicationId" value="@a.ApplicationId" />
-                                            <input type="hidden" name="newStatus" value="Rejected" />
-                                            <button class="btn btn-danger btn-sm">Reject</button>
-                                        </form>
-                                    }
-                                    @if (a.Status == "Approved")
-                                    {
-                                        <form asp-action="UpdateStatus" method="post">
-                                            @Html.AntiForgeryToken()
-                                            <input type="hidden" name="applicationId" value="@a.ApplicationId" />
-                                            <input type="hidden" name="newStatus" value="Terminated" />
-                                            <button class="btn btn-secondary btn-sm">Terminate</button>
-                                        </form>
-                                    }
-                                    @if (a.Status == "Approved" || a.Status == "Terminated")
-                                    {
-                                        <form asp-action="UpdateStatus" method="post">
-                                            @Html.AntiForgeryToken()
-                                            <input type="hidden" name="applicationId" value="@a.ApplicationId" />
-                                            <input type="hidden" name="newStatus" value="Renewal" />
-                                            <button class="btn btn-primary btn-sm">Renew</button>
-                                        </form>
-                                    }
+                                    <form asp-action="TerminateApplication" method="post" style="display:inline;">
+                                        @Html.AntiForgeryToken()
+                                        <input type="hidden" name="applicationId" value="@a.ApplicationId" />
+                                        <button type="submit" class="btn btn-secondary btn-sm" onclick="return confirm('Terminate this lease?')">Terminate</button>
+                                    </form>
+                                    <form asp-action="RenewApplication" method="post" style="display:inline;">
+                                        @Html.AntiForgeryToken()
+                                        <input type="hidden" name="applicationId" value="@a.ApplicationId" />
+                                        <button type="submit" class="btn btn-primary btn-sm" onclick="return confirm('Renew this lease?')">Renew</button>
+                                    </form>
                                 </div>
                             </td>
+                        }
+                        else if (User.IsInRole("PropertyManager"))
+                        {
+                            <td></td>
                         }
                     </tr>
                 }
