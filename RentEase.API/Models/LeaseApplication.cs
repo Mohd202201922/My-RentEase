@@ -2,7 +2,6 @@
 using System.Collections.Generic;
 using System.ComponentModel.DataAnnotations;
 using System.ComponentModel.DataAnnotations.Schema;
-using Microsoft.EntityFrameworkCore;
 
 namespace RentEase.API.Models;
 
@@ -19,52 +18,36 @@ public partial class LeaseApplication
     [Column("UnitID")]
     public int UnitId { get; set; }
 
-    [Column(TypeName = "datetime")]
     public DateTime? RequestedStartDate { get; set; }
-
-    [Column(TypeName = "datetime")]
     public DateTime? RequestedEndDate { get; set; }
 
     [StringLength(500)]
     public string? Notes { get; set; }
 
-    [Column(TypeName = "datetime")]
     public DateTime CreatedAt { get; set; }
 
     [StringLength(50)]
-    public string? Status { get; set; }  // Screening, Approved, Rejected, Renewal, Terminated
+    public string? Status { get; set; }  // Pending, Approved, Rejected, Renewal, Terminated
 
-    [Column(TypeName = "datetime")]
     public DateTime? UpdatedAt { get; set; }
 
-    // Payment workflow fields
-    public bool IsPaymentApproved { get; set; } = false;
+    // Payment fields
+    public bool IsPaymentApproved { get; set; }
     public DateTime? PaymentApprovedAt { get; set; }
     public DateTime? PaymentDate { get; set; }
     public string? PaymentTransactionId { get; set; }
     [Column(TypeName = "decimal(10,2)")]
     public decimal? PaymentAmount { get; set; }
 
-    [InverseProperty("Application")]
+    // Termination request
+    public bool TerminationRequested { get; set; }
+    public DateTime? TerminationRequestDate { get; set; }
+    public DateTime? TerminationApprovedAt { get; set; }
+    public DateTime? TerminationMoveOutDate { get; set; }
+
     public virtual ICollection<Document> Documents { get; set; } = new List<Document>();
-
-    [InverseProperty("Application")]
     public virtual ICollection<LeaseApplicationStatusHistory> LeaseApplicationStatusHistories { get; set; } = new List<LeaseApplicationStatusHistory>();
-
-    [InverseProperty("Application")]
     public virtual ICollection<Lease> Leases { get; set; } = new List<Lease>();
-
-    [ForeignKey("UnitId")]
-    [InverseProperty("LeaseApplications")]
     public virtual Unit Unit { get; set; } = null!;
-
-    [ForeignKey("UserId")]
-    [InverseProperty("LeaseApplications")]
     public virtual User User { get; set; } = null!;
-
-    [InverseProperty("Application")]
-    public virtual ICollection<ScreeningAppointment> ScreeningAppointments { get; set; } = new List<ScreeningAppointment>();
-
-    [InverseProperty("Application")]
-    public virtual ICollection<LeaseAgreement> LeaseAgreements { get; set; } = new List<LeaseAgreement>();
 }

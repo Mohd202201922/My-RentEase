@@ -13,11 +13,11 @@ namespace RentEase.MVC.Controllers;
 public class NotificationsController : Controller
 {
     private readonly PropertyLeasingDbContext _db;
-    private readonly UserManager<AppUser>     _userManager;
+    private readonly UserManager<AppUser> _userManager;
 
     public NotificationsController(PropertyLeasingDbContext db, UserManager<AppUser> userManager)
     {
-        _db          = db;
+        _db = db;
         _userManager = userManager;
     }
 
@@ -28,7 +28,6 @@ public class NotificationsController : Controller
         return await _db.Users.FirstOrDefaultAsync(u => u.IdentityUserId == identity.Id);
     }
 
-    // GET /Notifications
     public async Task<IActionResult> Index()
     {
         var appUser = await GetAppUserAsync();
@@ -39,18 +38,17 @@ public class NotificationsController : Controller
             .OrderByDescending(n => n.CreatedAt)
             .Select(n => new NotificationViewModel
             {
-                NotificationId   = n.NotificationId,
-                Message          = n.Message,
+                NotificationId = n.NotificationId,
+                Message = n.Message,
                 NotificationType = n.NotificationType,
-                Status           = n.Status,
-                CreatedAt        = n.CreatedAt
+                Status = n.Status,
+                CreatedAt = n.CreatedAt
             })
             .ToListAsync();
 
         return View(notifications);
     }
 
-    // POST /Notifications/MarkRead/{id}
     [HttpPost]
     [ValidateAntiForgeryToken]
     public async Task<IActionResult> MarkRead(int id)
@@ -67,7 +65,6 @@ public class NotificationsController : Controller
         return RedirectToAction("Index");
     }
 
-    // POST /Notifications/MarkAllRead
     [HttpPost]
     [ValidateAntiForgeryToken]
     public async Task<IActionResult> MarkAllRead()
@@ -85,7 +82,7 @@ public class NotificationsController : Controller
     }
 }
 
-// ── Dashboard ─────────────────────────────────────────
+// ── Dashboard (Property Manager only) ─────────────────
 [Authorize(Roles = "PropertyManager")]
 public class DashboardController : Controller
 {
@@ -96,28 +93,27 @@ public class DashboardController : Controller
         _db = db;
     }
 
-    // GET /Dashboard
     public async Task<IActionResult> Index()
     {
         var model = new DashboardViewModel
         {
-            TotalProperties     = await _db.Properties.CountAsync(),
-            TotalUnits          = await _db.Units.CountAsync(),
-            AvailableUnits      = await _db.Units.CountAsync(u => u.AvailabilityStatus == "Available"),
-            OccupiedUnits       = await _db.Units.CountAsync(u => u.AvailabilityStatus == "Occupied"),
-            PendingApplications = await _db.LeaseApplications.CountAsync(a => a.Status == "Pending" || a.Status == "Screening"),
-            ActiveLeases        = await _db.Leases.CountAsync(l => l.LeaseStatusHistories.Any(h => h.IsCurrent && h.Status.StatusName == "Active")),
+            TotalProperties = await _db.Properties.CountAsync(),
+            TotalUnits = await _db.Units.CountAsync(),
+            AvailableUnits = await _db.Units.CountAsync(u => u.AvailabilityStatus == "Available"),
+            OccupiedUnits = await _db.Units.CountAsync(u => u.AvailabilityStatus == "Occupied"),
+            PendingApplications = await _db.LeaseApplications.CountAsync(a => a.Status == "Pending"),
+            ActiveLeases = await _db.Leases.CountAsync(),
             OpenMaintenanceRequests = await _db.MaintenanceRequests
                 .CountAsync(r => r.Status.StatusName == "Submitted" || r.Status.StatusName == "Assigned" || r.Status.StatusName == "InProgress"),
-            OverduePayments     = await _db.PaymentRecords
+            OverduePayments = await _db.PaymentRecords
                 .CountAsync(p => p.PaymentStatus == "Pending" && p.DueDate < DateTime.Now),
 
             PropertyOccupancy = await _db.Properties
                 .Include(p => p.Units)
                 .Select(p => new PropertyOccupancyViewModel
                 {
-                    PropertyName  = p.Name,
-                    TotalUnits    = p.Units.Count,
+                    PropertyName = p.Name,
+                    TotalUnits = p.Units.Count,
                     OccupiedUnits = p.Units.Count(u => u.AvailabilityStatus == "Occupied"),
                     OccupancyRate = p.Units.Count == 0 ? 0 :
                         Math.Round((double)p.Units.Count(u => u.AvailabilityStatus == "Occupied") / p.Units.Count * 100, 1)
@@ -132,15 +128,15 @@ public class DashboardController : Controller
                 .Take(5)
                 .Select(r => new MaintenanceListViewModel
                 {
-                    RequestId    = r.RequestId,
-                    Title        = r.Title,
-                    Status       = r.StatusName,
-                    Priority     = r.Priority,
+                    RequestId = r.RequestId,
+                    Title = r.Title,
+                    Status = r.Status.StatusName,
+                    Priority = r.Priority,
                     TicketNumber = r.TicketNumber,
-                    UnitNumber   = r.Unit.UnitNumber,
+                    UnitNumber = r.Unit.UnitNumber,
                     PropertyName = r.Unit.Property.Name,
-                    TenantName   = r.TenantUser.FullName,
-                    SubmittedAt  = r.SubmittedAt
+                    TenantName = r.TenantUser.FullName,
+                    SubmittedAt = r.SubmittedAt
                 })
                 .ToListAsync(),
 
@@ -152,11 +148,11 @@ public class DashboardController : Controller
                 .Select(a => new LeaseApplicationListViewModel
                 {
                     ApplicationId = a.ApplicationId,
-                    TenantName    = a.User.FullName,
-                    UnitNumber    = a.Unit.UnitNumber,
-                    PropertyName  = a.Unit.Property.Name,
-                    Status        = a.Status,
-                    CreatedAt     = a.CreatedAt
+                    TenantName = a.User.FullName,
+                    UnitNumber = a.Unit.UnitNumber,
+                    PropertyName = a.Unit.Property.Name,
+                    Status = a.Status,
+                    CreatedAt = a.CreatedAt
                 })
                 .ToListAsync()
         };
@@ -170,11 +166,11 @@ public class DashboardController : Controller
 public class PaymentsController : Controller
 {
     private readonly PropertyLeasingDbContext _db;
-    private readonly UserManager<AppUser>     _userManager;
+    private readonly UserManager<AppUser> _userManager;
 
     public PaymentsController(PropertyLeasingDbContext db, UserManager<AppUser> userManager)
     {
-        _db          = db;
+        _db = db;
         _userManager = userManager;
     }
 
@@ -185,7 +181,6 @@ public class PaymentsController : Controller
         return await _db.Users.FirstOrDefaultAsync(u => u.IdentityUserId == identity.Id);
     }
 
-    // GET /Payments
     public async Task<IActionResult> Index(string? status)
     {
         var appUser = await GetAppUserAsync();
@@ -199,7 +194,6 @@ public class PaymentsController : Controller
             .Include(p => p.Lease.Application.User)
             .AsQueryable();
 
-        // Tenants only see their own payments
         if (appUser.Role == "Tenant")
             query = query.Where(p => p.Lease.Application.UserId == appUser.UserId);
 
@@ -210,16 +204,16 @@ public class PaymentsController : Controller
             .OrderByDescending(p => p.DueDate)
             .Select(p => new PaymentListViewModel
             {
-                PaymentId     = p.PaymentId,
-                UnitNumber    = p.Lease.Application.Unit.UnitNumber,
-                PropertyName  = p.Lease.Application.Unit.Property.Name,
-                TenantName    = p.Lease.Application.User.FullName,
-                AmountDue     = p.AmountDue,
-                AmountPaid    = p.AmountPaid,
-                DueDate       = p.DueDate,
-                PaidDate      = p.PaidDate,
+                PaymentId = p.PaymentId,
+                UnitNumber = p.Lease.Application.Unit.UnitNumber,
+                PropertyName = p.Lease.Application.Unit.Property.Name,
+                TenantName = p.Lease.Application.User.FullName,
+                AmountDue = p.AmountDue,
+                AmountPaid = p.AmountPaid,
+                DueDate = p.DueDate,
+                PaidDate = p.PaidDate,
                 PaymentStatus = p.PaymentStatus,
-                Notes         = p.Notes
+                Notes = p.Notes
             })
             .ToListAsync();
 
@@ -227,7 +221,6 @@ public class PaymentsController : Controller
         return View(payments);
     }
 
-    // POST /Payments/RecordPayment — Manager only
     [Authorize(Roles = "PropertyManager")]
     [HttpPost]
     [ValidateAntiForgeryToken]
@@ -236,9 +229,9 @@ public class PaymentsController : Controller
         var payment = await _db.PaymentRecords.FindAsync(paymentId);
         if (payment == null) return NotFound();
 
-        payment.AmountPaid    = amountPaid;
-        payment.PaidDate      = DateTime.Now;
-        payment.Notes         = notes;
+        payment.AmountPaid = amountPaid;
+        payment.PaidDate = DateTime.Now;
+        payment.Notes = notes;
         payment.PaymentStatus = amountPaid >= payment.AmountDue ? "Paid" : "PartiallyPaid";
 
         await _db.SaveChangesAsync();

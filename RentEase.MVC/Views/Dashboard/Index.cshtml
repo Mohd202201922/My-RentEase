@@ -1,9 +1,55 @@
 @model RentEase.MVC.ViewModels.DashboardViewModel
 @{
-    ViewData["Title"] = "Dashboard";
+    ViewData["Title"] = "Property Manager Dashboard";
 }
 
-<h2 class="mb-4"><i class="fa fa-chart-bar me-2"></i>Property Manager Dashboard</h2>
+<!-- Quick Action Cards -->
+<div class="row g-3 mb-4">
+    <div class="col-md-3">
+        <a asp-controller="Properties" asp-action="Index" class="text-decoration-none">
+            <div class="card text-center border-primary shadow-sm h-100">
+                <div class="card-body">
+                    <i class="fa fa-building fa-2x text-primary mb-2"></i>
+                    <h5 class="card-title">Properties</h5>
+                    <p class="card-text small">Manage properties and units</p>
+                </div>
+            </div>
+        </a>
+    </div>
+    <div class="col-md-3">
+        <a asp-controller="Home" asp-action="MaintenanceLookup" class="text-decoration-none">
+            <div class="card text-center border-warning shadow-sm h-100">
+                <div class="card-body">
+                    <i class="fa fa-search fa-2x text-warning mb-2"></i>
+                    <h5 class="card-title">Track Request</h5>
+                    <p class="card-text small">Public maintenance lookup</p>
+                </div>
+            </div>
+        </a>
+    </div>
+    <div class="col-md-3">
+        <a asp-controller="Payments" asp-action="Index" class="text-decoration-none">
+            <div class="card text-center border-success shadow-sm h-100">
+                <div class="card-body">
+                    <i class="fa fa-money-bill fa-2x text-success mb-2"></i>
+                    <h5 class="card-title">Payments</h5>
+                    <p class="card-text small">Record and track payments</p>
+                </div>
+            </div>
+        </a>
+    </div>
+    <div class="col-md-3">
+        <a asp-controller="LeaseApplications" asp-action="Index" class="text-decoration-none">
+            <div class="card text-center border-info shadow-sm h-100">
+                <div class="card-body">
+                    <i class="fa fa-file-alt fa-2x text-info mb-2"></i>
+                    <h5 class="card-title">Lease Applications</h5>
+                    <p class="card-text small">Review and manage applications</p>
+                </div>
+            </div>
+        </a>
+    </div>
+</div>
 
 <!-- KPI Cards -->
 <div class="row g-3 mb-4">
@@ -63,7 +109,7 @@
         </div>
     </div>
 
-    <!-- Real-Time Maintenance Board (SignalR) -->
+    <!-- Real-Time Maintenance Board -->
     <div class="col-md-6">
         <div class="card h-100">
             <div class="card-header d-flex justify-content-between align-items-center">
@@ -103,30 +149,36 @@
     </div>
 </div>
 
-<!-- Recent Applications -->
+<!-- Recent Lease Applications (clickable rows) -->
 <div class="card mb-4">
     <div class="card-header"><i class="fa fa-file-alt me-1"></i>Recent Lease Applications</div>
     <div class="card-body p-0">
         <table class="table table-hover mb-0">
             <thead class="table-light">
-                <tr><th>Tenant</th><th>Unit</th><th>Property</th><th>Status</th><th>Date</th><th></th></tr>
+                <tr>
+                    <th>Tenant</th>
+                    <th>Unit</th>
+                    <th>Property</th>
+                    <th>Status</th>
+                </tr>
             </thead>
             <tbody>
                 @foreach (var a in Model.RecentApplications)
                 {
-                    <tr>
+                    var statusColor = a.Status switch
+                    {
+                        "Approved" => "success",
+                        "Rejected" => "danger",
+                        "Pending" => "warning",
+                        "Renewal" => "primary",
+                        "Terminated" => "secondary",
+                        _ => "secondary"
+                    };
+                    <tr style="cursor:pointer;" onclick="location.href='@Url.Action("Details", "LeaseApplications", new { id = a.ApplicationId })'">
                         <td>@a.TenantName</td>
                         <td>@a.UnitNumber</td>
                         <td>@a.PropertyName</td>
-                        <td>
-                            <span class="badge bg-@(a.Status == "Approved" ? "success" : a.Status == "Rejected" ? "danger" : "warning")">
-                                @a.Status
-                            </span>
-                        </td>
-                        <td>@a.CreatedAt.ToString("dd MMM yyyy")</td>
-                        <td>
-                            <a asp-controller="LeaseApplications" asp-action="Index" class="btn btn-sm btn-outline-primary">View</a>
-                        </td>
+                        <td><span class="badge bg-@statusColor">@a.Status</span></td>
                     </tr>
                 }
             </tbody>
@@ -135,45 +187,43 @@
 </div>
 
 @section Scripts {
-<script src="https://cdnjs.cloudflare.com/ajax/libs/microsoft-signalr/8.0.0/signalr.min.js"></script>
-<script>
-const connection = new signalR.HubConnectionBuilder()
-    .withUrl("/hubs/maintenance")
-    .withAutomaticReconnect()
-    .build();
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/microsoft-signalr/8.0.0/signalr.min.js"></script>
+    <script>
+        const connection = new signalR.HubConnectionBuilder()
+            .withUrl("/hubs/maintenance")
+            .withAutomaticReconnect()
+            .build();
 
-// New request submitted
-connection.on("NewRequest", (data) => {
-    const tbody = document.getElementById("maintenance-rows");
-    const priorityColor = data.priority === "Urgent" ? "danger" : data.priority === "High" ? "warning" : "secondary";
-    const row = `<tr id="row-${data.requestId}" class="table-warning">
-        <td><small>${data.ticketNumber}</small></td>
-        <td>${data.title}</td>
-        <td><span class="badge bg-${priorityColor}">${data.priority}</span></td>
-        <td><span class="badge bg-secondary">${data.status}</span></td>
-    </tr>`;
-    tbody.insertAdjacentHTML("afterbegin", row);
-});
+        connection.on("NewRequest", (data) => {
+            const tbody = document.getElementById("maintenance-rows");
+            const priorityColor = data.priority === "Urgent" ? "danger" : data.priority === "High" ? "warning" : "secondary";
+            const row = `<tr id="row-${data.requestId}" class="table-warning">
+                <td><small>${data.ticketNumber}</small></td>
+                <td>${data.title}</td>
+                <td><span class="badge bg-${priorityColor}">${data.priority}</span></td>
+                <td><span class="badge bg-secondary">${data.status}</span></td>
+            </tr>`;
+            tbody.insertAdjacentHTML("afterbegin", row);
+        });
 
-// Status updated
-connection.on("StatusUpdated", (data) => {
-    const row = document.getElementById(`row-${data.requestId}`);
-    if (row) {
-        const badge = row.querySelector("td:last-child span");
-        if (badge) badge.textContent = data.newStatus;
-        row.classList.add("table-info");
-        setTimeout(() => row.classList.remove("table-info"), 3000);
-    }
-});
+        connection.on("StatusUpdated", (data) => {
+            const row = document.getElementById(`row-${data.requestId}`);
+            if (row) {
+                const badge = row.querySelector("td:last-child span");
+                if (badge) badge.textContent = data.newStatus;
+                row.classList.add("table-info");
+                setTimeout(() => row.classList.remove("table-info"), 3000);
+            }
+        });
 
-connection.start()
-    .then(() => {
-        document.getElementById("signalr-status").textContent = "Live";
-        document.getElementById("signalr-status").className = "badge bg-success";
-    })
-    .catch(() => {
-        document.getElementById("signalr-status").textContent = "Offline";
-        document.getElementById("signalr-status").className = "badge bg-danger";
-    });
-</script>
+        connection.start()
+            .then(() => {
+                document.getElementById("signalr-status").textContent = "Live";
+                document.getElementById("signalr-status").className = "badge bg-success";
+            })
+            .catch(() => {
+                document.getElementById("signalr-status").textContent = "Offline";
+                document.getElementById("signalr-status").className = "badge bg-danger";
+            });
+    </script>
 }

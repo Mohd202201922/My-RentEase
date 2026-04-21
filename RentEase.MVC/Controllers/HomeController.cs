@@ -1,3 +1,4 @@
+using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using RentEase.API.Data;
@@ -11,20 +12,31 @@ public class HomeController : Controller
 {
     private readonly PropertyLeasingDbContext _db;
     private readonly ApiService _apiService;
+    private readonly UserManager<AppUser> _userManager;
 
-    public HomeController(PropertyLeasingDbContext db, ApiService apiService)
+    public HomeController(PropertyLeasingDbContext db, ApiService apiService, UserManager<AppUser> userManager)
     {
-        _db         = db;
+        _db = db;
         _apiService = apiService;
+        _userManager = userManager;
     }
 
-    // GET / — public landing page
+    // GET / — redirect Property Manager to Dashboard
     public async Task<IActionResult> Index()
     {
-        // Show stats on landing page
-        ViewBag.TotalProperties  = await _db.Properties.CountAsync();
-        ViewBag.AvailableUnits   = await _db.Units.CountAsync(u => u.AvailabilityStatus == "Available");
-        ViewBag.TotalUnits       = await _db.Units.CountAsync();
+        if (User.Identity?.IsAuthenticated == true)
+        {
+            var user = await _userManager.GetUserAsync(User);
+            if (user != null && await _userManager.IsInRoleAsync(user, "PropertyManager"))
+            {
+                return RedirectToAction("Index", "Dashboard");
+            }
+        }
+
+        // Show stats on landing page for non-managers
+        ViewBag.TotalProperties = await _db.Properties.CountAsync();
+        ViewBag.AvailableUnits = await _db.Units.CountAsync(u => u.AvailabilityStatus == "Available");
+        ViewBag.TotalUnits = await _db.Units.CountAsync();
         ViewBag.FeaturedProperties = await _db.Properties
             .Include(p => p.Units)
             .Take(3)
@@ -48,7 +60,6 @@ public class HomeController : Controller
         if (!ModelState.IsValid)
             return View(model);
 
-        // Call the Web API endpoint via HttpClient (not direct DB access)
         var result = await _apiService.LookupMaintenanceTicketAsync(
             model.TicketNumber!, model.Phone!);
 

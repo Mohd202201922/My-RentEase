@@ -12,28 +12,38 @@
     <header>
         <nav class="navbar navbar-expand-sm navbar-dark bg-dark border-bottom border-body">
             <div class="container">
-                <a class="navbar-brand fw-bold" asp-controller="Home" asp-action="Index">
-                    <i class="fa fa-building me-1"></i> RentEase
-                </a>
+                <!-- Brand: redirect to Dashboard for Property Manager, otherwise Home -->
+                @if (User.Identity?.IsAuthenticated == true && User.IsInRole("PropertyManager"))
+                {
+                    <a class="navbar-brand fw-bold" asp-controller="Dashboard" asp-action="Index">
+                        <i class="fa fa-building me-1"></i> RentEase
+                    </a>
+                }
+                else
+                {
+                    <a class="navbar-brand fw-bold" asp-controller="Home" asp-action="Index">
+                        <i class="fa fa-building me-1"></i> RentEase
+                    </a>
+                }
                 <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navMenu">
                     <span class="navbar-toggler-icon"></span>
                 </button>
                 <div class="collapse navbar-collapse" id="navMenu">
                     <ul class="navbar-nav me-auto">
-                        <li class="nav-item">
-                            <a class="nav-link" asp-controller="Properties" asp-action="Index">
-                                <i class="fa fa-home me-1"></i>Properties
-                            </a>
-                        </li>
-                        <li class="nav-item">
-                            <a class="nav-link" asp-controller="Home" asp-action="MaintenanceLookup">
-                                <i class="fa fa-search me-1"></i>Track Request
-                            </a>
-                        </li>
                         @if (User.Identity?.IsAuthenticated == true)
                         {
                             @if (User.IsInRole("Tenant"))
                             {
+                                <li class="nav-item">
+                                    <a class="nav-link" asp-controller="Properties" asp-action="Index">
+                                        <i class="fa fa-home me-1"></i>Properties
+                                    </a>
+                                </li>
+                                <li class="nav-item">
+                                    <a class="nav-link" asp-controller="Home" asp-action="MaintenanceLookup">
+                                        <i class="fa fa-search me-1"></i>Track Request
+                                    </a>
+                                </li>
                                 <li class="nav-item">
                                     <a class="nav-link" asp-controller="LeaseApplications" asp-action="Index">
                                         <i class="fa fa-file-alt me-1"></i>My Applications
@@ -44,37 +54,6 @@
                                         <i class="fa fa-wrench me-1"></i>Maintenance
                                     </a>
                                 </li>
-                                <li class="nav-item dropdown">
-                                    <a class="nav-link dropdown-toggle" href="#" data-bs-toggle="dropdown">
-                                        <i class="fa fa-calendar me-1"></i> My Tenancy
-                                    </a>
-                                    <ul class="dropdown-menu">
-                                        <li><a class="dropdown-item" asp-controller="Screening" asp-action="MyScreenings">My Screenings</a></li>
-                                        <li><a class="dropdown-item" asp-controller="LeaseAgreements" asp-action="MyLeases">My Leases</a></li>
-                                    </ul>
-                                </li>
-                            }
-                            @if (User.IsInRole("PropertyManager"))
-                            {
-                                <li class="nav-item">
-                                    <a class="nav-link" asp-controller="Dashboard" asp-action="Index">
-                                        <i class="fa fa-chart-bar me-1"></i>Dashboard
-                                    </a>
-                                </li>
-                                <li class="nav-item">
-                                    <a class="nav-link" asp-controller="Payments" asp-action="Index">
-                                        <i class="fa fa-money-bill me-1"></i>Payments
-                                    </a>
-                                </li>
-                                <li class="nav-item dropdown">
-                                    <a class="nav-link dropdown-toggle" href="#" data-bs-toggle="dropdown">
-                                        <i class="fa fa-calendar-check me-1"></i> Leasing Mgmt
-                                    </a>
-                                    <ul class="dropdown-menu">
-                                        <li><a class="dropdown-item" asp-controller="Screening" asp-action="Manage">Manage Screenings</a></li>
-                                        <li><a class="dropdown-item" asp-controller="LeaseAgreements" asp-action="All">All Lease Agreements</a></li>
-                                    </ul>
-                                </li>
                             }
                             @if (User.IsInRole("MaintenanceStaff"))
                             {
@@ -84,6 +63,21 @@
                                     </a>
                                 </li>
                             }
+                            <!-- Property Manager: no menu items here; they are on the Dashboard page -->
+                        }
+                        else
+                        {
+                            <!-- Public links for non-authenticated users -->
+                            <li class="nav-item">
+                                <a class="nav-link" asp-controller="Properties" asp-action="Index">
+                                    <i class="fa fa-home me-1"></i>Properties
+                                </a>
+                            </li>
+                            <li class="nav-item">
+                                <a class="nav-link" asp-controller="Home" asp-action="MaintenanceLookup">
+                                    <i class="fa fa-search me-1"></i>Track Request
+                                </a>
+                            </li>
                         }
                     </ul>
                     <ul class="navbar-nav">
@@ -156,15 +150,5 @@
     <script src="~/lib/bootstrap/js/bootstrap.bundle.min.js"></script>
     <script src="~/js/site.js" asp-append-version="true"></script>
     @await RenderSectionAsync("Scripts", required: false)
-    <script>
-        document.addEventListener("DOMContentLoaded", function () {
-            document.querySelectorAll('input[type="date"]').forEach(el => {
-                if (!el.value) el.placeholder = "YYYY-MM-DD";
-            });
-            document.querySelectorAll('input[type="time"]').forEach(el => {
-                if (!el.value) el.placeholder = "HH:MM";
-            });
-        });
-    </script>
 </body>
 </html>

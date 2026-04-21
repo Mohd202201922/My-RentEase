@@ -48,60 +48,22 @@
                     </div>
                 }
 
-                @if (Model.HasScreening)
-                {
-                    <div class="alert alert-info">
-                        <i class="fa fa-calendar-check me-2"></i>
-                        <strong>Screening Status:</strong> @Model.ScreeningStatus
-                        @if (Model.ScreeningDate.HasValue)
-                        {
-                            <br />
-                            <strong>Scheduled:</strong>
- 
-                            @Model.ScreeningDate.Value.ToString("dd MMM yyyy HH:mm")
-                        }
-                    </div>
-                }
-
-                @* Show warning alert only if tenant cannot pay yet *@
-                @if (Model.Status == "Screening" && User.IsInRole("Tenant") && !Model.IsPaymentApproved && !Model.PaymentDate.HasValue)
-                {
-                    <div class="alert alert-warning">
-                        <i class="fa fa-clock me-2"></i>
-                        Your application is under screening. Please attend the scheduled appointment.
-                    </div>
-                    @if (Model.HasScreening && (Model.ScreeningStatus == "Pending" || Model.ScreeningStatus == "Confirmed"))
-                    {
-                        <div class="d-flex gap-2 mb-3">
-                            <a asp-controller="Screening" asp-action="Edit" asp-route-id="@Model.ScreeningId" class="btn btn-outline-primary">
-                                <i class="fa fa-edit me-1"></i> Edit Appointment
-                            </a>
-                            <form asp-controller="Screening" asp-action="Cancel" method="post" onsubmit="return confirm('Cancel this screening? Your application will be rejected.');">
-                                @Html.AntiForgeryToken()
-                                <input type="hidden" name="screeningId" value="@Model.ScreeningId" />
-                                <button type="submit" class="btn btn-outline-danger">
-                                    <i class="fa fa-times me-1"></i> Cancel
-                                </button>
-                            </form>
-                        </div>
-                    }
-                }
-
-                @if (User.IsInRole("PropertyManager") && Model.Status == "Screening")
+                <!-- Manager Actions -->
+                @if (User.IsInRole("PropertyManager") && Model.Status == "Pending")
                 {
                     if (!Model.IsPaymentApproved)
                     {
-                        <form asp-action="PermitPayment" method="post">
+                        <form asp-action="PermitPayment" method="post" class="mb-2">
                             @Html.AntiForgeryToken()
                             <input type="hidden" name="applicationId" value="@Model.ApplicationId" />
-                            <button type="submit" class="btn btn-warning w-100 mb-3">
+                            <button type="submit" class="btn btn-warning w-100 mb-2">
                                 <i class="fa fa-check-circle me-1"></i> Permit Payment
                             </button>
                         </form>
-                        <form asp-action="RejectApplication" method="post" class="mt-2">
+                        <form asp-action="RejectApplication" method="post">
                             @Html.AntiForgeryToken()
                             <input type="hidden" name="applicationId" value="@Model.ApplicationId" />
-                            <button type="submit" class="btn btn-danger w-100" onclick="return confirm('Reject this application?')">
+                            <button type="submit" class="btn btn-danger w-100" onclick="return confirm('Reject this application? Unit will become available.')">
                                 <i class="fa fa-times-circle me-1"></i> Reject Application
                             </button>
                         </form>
@@ -117,9 +79,40 @@
                     }
                 }
 
-                @if (Model.Status == "Screening" && Model.IsPaymentApproved && !Model.PaymentDate.HasValue && User.IsInRole("Tenant"))
+                @if (User.IsInRole("PropertyManager") && Model.Status == "Approved")
                 {
-                    <div class="alert alert-success">
+                    <div class="d-flex gap-2 mb-2">
+                        <form asp-action="TerminateApplication" method="post" class="flex-fill">
+                            @Html.AntiForgeryToken()
+                            <input type="hidden" name="applicationId" value="@Model.ApplicationId" />
+                            <button type="submit" class="btn btn-secondary w-100" onclick="return confirm('Terminate this lease?')">
+                                <i class="fa fa-ban me-1"></i> Terminate
+                            </button>
+                        </form>
+                        <form asp-action="RenewApplication" method="post" class="flex-fill">
+                            @Html.AntiForgeryToken()
+                            <input type="hidden" name="applicationId" value="@Model.ApplicationId" />
+                            <button type="submit" class="btn btn-primary w-100">
+                                <i class="fa fa-sync-alt me-1"></i> Renew
+                            </button>
+                        </form>
+                    </div>
+                    @if (Model.TerminationRequested && !Model.TerminationApprovedAt.HasValue)
+                    {
+                        <form asp-action="ApproveTermination" method="post">
+                            @Html.AntiForgeryToken()
+                            <input type="hidden" name="applicationId" value="@Model.ApplicationId" />
+                            <button type="submit" class="btn btn-warning w-100" onclick="return confirm('Approve termination? Tenant will have 3 days to vacate.')">
+                                <i class="fa fa-check-circle me-1"></i> Approve Termination Request
+                            </button>
+                        </form>
+                    }
+                }
+
+                <!-- Tenant Actions -->
+                @if (Model.Status == "Pending" && Model.IsPaymentApproved && !Model.PaymentDate.HasValue && User.IsInRole("Tenant"))
+                {
+                    <div class="alert alert-success mt-3">
                         <i class="fa fa-check-circle me-2"></i>
                         Payment approved! Click below to complete your lease.
                     </div>
@@ -128,9 +121,34 @@
                     </a>
                 }
 
-                <div class="d-flex gap-2">
-                    <a asp-action="Index" class="btn btn-outline-secondary">
-                        <i class="fa fa-arrow-left me-1"></i> Back
+                @if (Model.Status == "Approved" && User.IsInRole("Tenant") && !Model.TerminationRequested)
+                {
+                    <form asp-action="RequestTermination" method="post" class="mt-3">
+                        @Html.AntiForgeryToken()
+                        <input type="hidden" name="applicationId" value="@Model.ApplicationId" />
+                        <button type="submit" class="btn btn-danger w-100" onclick="return confirm('Request termination? This must be approved by the manager.')">
+                            <i class="fa fa-exclamation-triangle me-1"></i> Request Termination
+                        </button>
+                    </form>
+                }
+                else if (Model.Status == "Approved" && Model.TerminationRequested)
+                {
+                    <div class="alert alert-warning mt-3">
+                        <i class="fa fa-clock me-2"></i> Termination requested. Awaiting manager approval.
+                        @if (Model.TerminationMoveOutDate.HasValue)
+                        {
+                            <br />
+                            <strong>Move‑out date:</strong>
+ 
+                            @Model.TerminationMoveOutDate.Value.ToString("dd MMM yyyy")
+                        }
+                    </div>
+                }
+
+                <!-- Back button redirects to filtered list by status -->
+                <div class="d-flex gap-2 mt-3">
+                    <a asp-action="Index" asp-route-status="@Model.Status" class="btn btn-outline-secondary">
+                        <i class="fa fa-arrow-left me-1"></i> Back to @Model.Status List
                     </a>
                 </div>
             </div>

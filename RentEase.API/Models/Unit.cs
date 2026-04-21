@@ -58,9 +58,5 @@ public partial class Unit
     [InverseProperty("Unit")]
     public virtual ICollection<UnitAmenity> UnitAmenities { get; set; } = new List<UnitAmenity>();
 
-    [InverseProperty("Unit")]
-    public virtual ICollection<ScreeningAppointment> ScreeningAppointments { get; set; } = new List<ScreeningAppointment>();
-
-    [InverseProperty("Unit")]
-    public virtual ICollection<LeaseAgreement> LeaseAgreements { get; set; } = new List<LeaseAgreement>();
+   
 }

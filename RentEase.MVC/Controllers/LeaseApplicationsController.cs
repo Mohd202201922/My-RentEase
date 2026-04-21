@@ -1,4 +1,4 @@
-using Microsoft.AspNetCore.Authorization;
+﻿using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
@@ -33,9 +33,49 @@ public class LeaseApplicationsController : Controller
         return await _db.Users.FirstOrDefaultAsync(u => u.IdentityUserId == identity.Id);
     }
 
-    // GET: /LeaseApplications
+    private async Task AutoRejectExpiredPendingApplications()
+    {
+        var cutoff = DateTime.Now.AddHours(-24);
+        var expired = await _db.LeaseApplications
+            .Include(a => a.Unit)
+            .Where(a => a.Status == "Pending" && a.CreatedAt <= cutoff)
+            .ToListAsync();
+
+        foreach (var app in expired)
+        {
+            app.Status = "Rejected";
+            app.UpdatedAt = DateTime.Now;
+            app.Unit.AvailabilityStatus = "Available";
+            await _notifier.SendAsync(app.UserId,
+                "Your lease application has expired because you did not complete payment within 24 hours.",
+                "LeaseUpdate");
+        }
+        await _db.SaveChangesAsync();
+    }
+
+    private async Task ProcessTerminatedUnits()
+    {
+        var today = DateTime.Now.Date;
+        var toMoveOut = await _db.LeaseApplications
+            .Include(a => a.Unit)
+            .Where(a => a.Status == "Terminated" && a.TerminationMoveOutDate.HasValue && a.TerminationMoveOutDate.Value.Date <= today)
+            .ToListAsync();
+
+        foreach (var app in toMoveOut)
+        {
+            app.Unit.AvailabilityStatus = "Available";
+            await _db.SaveChangesAsync();
+            await _notifier.SendAsync(app.UserId,
+                "Your lease has ended. You have moved out. Thank you.",
+                "LeaseUpdate");
+        }
+    }
+
     public async Task<IActionResult> Index(string? status)
     {
+        await AutoRejectExpiredPendingApplications();
+        await ProcessTerminatedUnits();
+
         var appUser = await GetAppUserAsync();
         if (appUser == null) return Unauthorized();
 
@@ -64,34 +104,15 @@ public class LeaseApplicationsController : Controller
                 Notes = a.Notes,
                 CreatedAt = a.CreatedAt,
                 IsPaymentApproved = a.IsPaymentApproved,
-                PaymentDate = a.PaymentDate
+                PaymentDate = a.PaymentDate,
+                TerminationRequested = a.TerminationRequested
             })
             .ToListAsync();
 
-        await AutoRejectExpiredScreenings();
         ViewBag.Status = status;
         return View(apps);
     }
 
-    private async Task AutoRejectExpiredScreenings()
-    {
-        var expiredScreenings = await _db.ScreeningAppointments
-            .Include(s => s.Application)
-            .Where(s => s.ScheduledDate < DateTime.Now && s.Status != "Completed" && s.Application.Status == "Screening")
-            .ToListAsync();
-
-        foreach (var screening in expiredScreenings)
-        {
-            screening.Application.Status = "Rejected";
-            screening.Application.UpdatedAt = DateTime.Now;
-            await _notifier.SendAsync(screening.Application.UserId,
-                "Your lease application has been rejected because you missed the scheduled screening appointment.",
-                "LeaseUpdate");
-        }
-        await _db.SaveChangesAsync();
-    }
-
-    // Tenant: apply for a unit
     [Authorize(Roles = "Tenant")]
     public async Task<IActionResult> Apply(int unitId)
     {
@@ -128,12 +149,17 @@ public class LeaseApplicationsController : Controller
 
         var existing = await _db.LeaseApplications
             .AnyAsync(a => a.UnitId == model.UnitId && a.UserId == appUser.UserId
-                        && (a.Status == "Screening" || a.Status == "Approved"));
+                        && (a.Status == "Pending" || a.Status == "Approved"));
         if (existing)
         {
             TempData["Error"] = "You already have an active application for this unit.";
             return RedirectToAction("Index");
         }
+
+        var unit = await _db.Units.FindAsync(model.UnitId);
+        if (unit == null) return NotFound();
+
+        unit.AvailabilityStatus = "Occupied";
 
         var application = new LeaseApplication
         {
@@ -142,29 +168,29 @@ public class LeaseApplicationsController : Controller
             RequestedStartDate = model.RequestedStartDate,
             RequestedEndDate = model.RequestedEndDate,
             Notes = model.Notes,
-            Status = "Screening",
-            CreatedAt = DateTime.Now
+            Status = "Pending",
+            CreatedAt = DateTime.Now,
+            IsPaymentApproved = false
         };
         _db.LeaseApplications.Add(application);
         await _db.SaveChangesAsync();
 
         await _notifier.SendAsync(appUser.UserId,
-            "Your lease application has been submitted. Please book a screening appointment to proceed.",
+            "Your lease application has been submitted. You have 24 hours to complete payment.",
             "LeaseUpdate");
 
         var managers = await _db.Users.Where(u => u.Role == "PropertyManager").ToListAsync();
         foreach (var mgr in managers)
         {
             await _notifier.SendAsync(mgr.UserId,
-                $"New lease application from {appUser.FullName} for unit {model.UnitNumber}. Status: Screening.",
+                $"New lease application from {appUser.FullName} for unit {model.UnitNumber}. Status: Pending.",
                 "LeaseUpdate");
         }
 
-        TempData["Success"] = "Application submitted! Please book a screening appointment.";
-        return RedirectToAction("Book", "Screening", new { applicationId = application.ApplicationId });
+        TempData["Success"] = "Application submitted! You have 24 hours to complete payment. Unit is now reserved for you.";
+        return RedirectToAction("Index");
     }
 
-    // Details page
     public async Task<IActionResult> Details(int id)
     {
         var appUser = await GetAppUserAsync();
@@ -173,14 +199,11 @@ public class LeaseApplicationsController : Controller
         var application = await _db.LeaseApplications
             .Include(a => a.Unit).ThenInclude(u => u.Property)
             .Include(a => a.User)
-            .Include(a => a.ScreeningAppointments)
             .FirstOrDefaultAsync(a => a.ApplicationId == id);
 
         if (application == null) return NotFound();
         if (appUser.Role == "Tenant" && application.UserId != appUser.UserId)
             return Unauthorized();
-
-        var screening = application.ScreeningAppointments.OrderByDescending(s => s.CreatedAt).FirstOrDefault();
 
         var model = new LeaseApplicationDetailViewModel
         {
@@ -197,17 +220,16 @@ public class LeaseApplicationsController : Controller
             Notes = application.Notes,
             Status = application.Status,
             CreatedAt = application.CreatedAt,
-            HasScreening = screening != null,
-            ScreeningStatus = screening?.Status,
-            ScreeningDate = screening?.ScheduledDate,
-            ScreeningId = screening?.ScreeningId,
             IsPaymentApproved = application.IsPaymentApproved,
-            PaymentDate = application.PaymentDate
+            PaymentDate = application.PaymentDate,
+            TerminationRequested = application.TerminationRequested,
+            TerminationRequestDate = application.TerminationRequestDate,
+            TerminationApprovedAt = application.TerminationApprovedAt,
+            TerminationMoveOutDate = application.TerminationMoveOutDate
         };
         return View(model);
     }
 
-    // Manager: permit payment (sets IsPaymentApproved = true, deletes upcoming screenings)
     [Authorize(Roles = "PropertyManager")]
     [HttpPost]
     [ValidateAntiForgeryToken]
@@ -220,19 +242,10 @@ public class LeaseApplicationsController : Controller
 
         if (application == null) return NotFound();
 
-        if (application.Status != "Screening")
+        if (application.Status != "Pending")
         {
-            TempData["Error"] = "Only screening applications can be permitted for payment.";
+            TempData["Error"] = "Only pending applications can be permitted for payment.";
             return RedirectToAction("Index");
-        }
-
-        // Delete any pending or confirmed screening appointments for this application
-        var screenings = await _db.ScreeningAppointments
-            .Where(s => s.ApplicationId == applicationId && (s.Status == "Pending" || s.Status == "Confirmed"))
-            .ToListAsync();
-        if (screenings.Any())
-        {
-            _db.ScreeningAppointments.RemoveRange(screenings);
         }
 
         application.IsPaymentApproved = true;
@@ -241,14 +254,13 @@ public class LeaseApplicationsController : Controller
         await _db.SaveChangesAsync();
 
         await _notifier.SendAsync(application.UserId,
-            $"Your lease application for Unit {application.Unit.UnitNumber} has been approved for payment. Please proceed to make the payment.",
+            $"Your lease application for Unit {application.Unit.UnitNumber} has been approved for payment. Please proceed to pay within 24 hours of application submission.",
             "LeaseUpdate");
 
-        TempData["Success"] = "Payment permission granted. Tenant can now pay. Any pending screenings have been canceled.";
+        TempData["Success"] = "Payment permission granted. Tenant can now pay.";
         return RedirectToAction("Index");
     }
 
-    // Manager: reject screening application (status -> Rejected)
     [Authorize(Roles = "PropertyManager")]
     [HttpPost]
     [ValidateAntiForgeryToken]
@@ -261,88 +273,99 @@ public class LeaseApplicationsController : Controller
 
         if (application == null) return NotFound();
 
-        if (application.Status != "Screening")
+        if (application.Status != "Pending")
         {
-            TempData["Error"] = "Only screening applications can be rejected.";
+            TempData["Error"] = "Only pending applications can be rejected.";
             return RedirectToAction("Index");
         }
 
         application.Status = "Rejected";
         application.UpdatedAt = DateTime.Now;
+        application.Unit.AvailabilityStatus = "Available";
         await _db.SaveChangesAsync();
 
         await _notifier.SendAsync(application.UserId,
             $"Your lease application for Unit {application.Unit.UnitNumber} has been rejected.",
             "LeaseUpdate");
 
-        TempData["Success"] = "Application rejected.";
+        TempData["Success"] = "Application rejected. Unit is now available.";
         return RedirectToAction("Index");
     }
 
-    // Manager: terminate an approved lease (status -> Terminated)
-    [Authorize(Roles = "PropertyManager")]
+    [Authorize(Roles = "Tenant")]
     [HttpPost]
     [ValidateAntiForgeryToken]
-    public async Task<IActionResult> TerminateApplication(int applicationId)
+    public async Task<IActionResult> RequestTermination(int applicationId)
     {
+        var appUser = await GetAppUserAsync();
+        if (appUser == null) return Unauthorized();
+
         var application = await _db.LeaseApplications
-            .Include(a => a.User)
-            .Include(a => a.Unit)
-            .FirstOrDefaultAsync(a => a.ApplicationId == applicationId);
+            .Include(a => a.Unit)   // ✅ Include Unit to avoid null reference
+            .FirstOrDefaultAsync(a => a.ApplicationId == applicationId && a.UserId == appUser.UserId);
 
         if (application == null) return NotFound();
 
         if (application.Status != "Approved")
         {
-            TempData["Error"] = "Only approved applications can be terminated.";
+            TempData["Error"] = "Only approved leases can be terminated.";
+            return RedirectToAction("Details", new { id = applicationId });
+        }
+
+        if (application.TerminationRequested)
+        {
+            TempData["Error"] = "Termination already requested.";
+            return RedirectToAction("Details", new { id = applicationId });
+        }
+
+        application.TerminationRequested = true;
+        application.TerminationRequestDate = DateTime.Now;
+        await _db.SaveChangesAsync();
+
+        var managers = await _db.Users.Where(u => u.Role == "PropertyManager").ToListAsync();
+        foreach (var mgr in managers)
+        {
+            await _notifier.SendAsync(mgr.UserId,
+                $"Tenant {appUser.FullName} has requested termination for Unit {application.Unit.UnitNumber}.",
+                "LeaseUpdate");
+        }
+
+        TempData["Success"] = "Termination request submitted. Property manager will review.";
+        return RedirectToAction("Details", new { id = applicationId });
+    }
+
+    [Authorize(Roles = "PropertyManager")]
+    [HttpPost]
+    [ValidateAntiForgeryToken]
+    public async Task<IActionResult> ApproveTermination(int applicationId)
+    {
+        var application = await _db.LeaseApplications
+            .Include(a => a.Unit)
+            .Include(a => a.User)
+            .FirstOrDefaultAsync(a => a.ApplicationId == applicationId);
+
+        if (application == null) return NotFound();
+
+        if (application.Status != "Approved" || !application.TerminationRequested)
+        {
+            TempData["Error"] = "Invalid termination request.";
             return RedirectToAction("Index");
         }
 
         application.Status = "Terminated";
-        application.UpdatedAt = DateTime.Now;
-        application.Unit.AvailabilityStatus = "Available";
-        await _db.SaveChangesAsync();
-
-        await _notifier.SendAsync(application.UserId,
-            $"Your lease for Unit {application.Unit.UnitNumber} has been terminated.",
-            "LeaseUpdate");
-
-        TempData["Success"] = "Lease terminated. Unit marked as available.";
-        return RedirectToAction("Index");
-    }
-
-    // Manager: renew an approved lease (status -> Renewal)
-    [Authorize(Roles = "PropertyManager")]
-    [HttpPost]
-    [ValidateAntiForgeryToken]
-    public async Task<IActionResult> RenewApplication(int applicationId)
-    {
-        var application = await _db.LeaseApplications
-            .Include(a => a.User)
-            .Include(a => a.Unit)
-            .FirstOrDefaultAsync(a => a.ApplicationId == applicationId);
-
-        if (application == null) return NotFound();
-
-        if (application.Status != "Approved")
-        {
-            TempData["Error"] = "Only approved applications can be renewed.";
-            return RedirectToAction("Index");
-        }
-
-        application.Status = "Renewal";
+        application.TerminationApprovedAt = DateTime.Now;
+        application.TerminationMoveOutDate = DateTime.Now.AddDays(3);
         application.UpdatedAt = DateTime.Now;
         await _db.SaveChangesAsync();
 
         await _notifier.SendAsync(application.UserId,
-            $"Your lease for Unit {application.Unit.UnitNumber} has been renewed.",
+            $"Your termination request has been approved. You have 3 days to move out. After that, the unit will be made available.",
             "LeaseUpdate");
 
-        TempData["Success"] = "Lease renewed.";
+        TempData["Success"] = "Termination approved. Tenant has 3 days to vacate.";
         return RedirectToAction("Index");
     }
 
-    // Tenant: pay for the application
     [Authorize(Roles = "Tenant")]
     public async Task<IActionResult> Pay(int id)
     {
@@ -350,8 +373,7 @@ public class LeaseApplicationsController : Controller
         if (appUser == null) return Unauthorized();
 
         var application = await _db.LeaseApplications
-            .Include(a => a.Unit)
-                .ThenInclude(u => u.Property)
+            .Include(a => a.Unit).ThenInclude(u => u.Property)
             .FirstOrDefaultAsync(a => a.ApplicationId == id && a.UserId == appUser.UserId);
 
         if (application == null) return NotFound();
@@ -366,10 +388,16 @@ public class LeaseApplicationsController : Controller
             TempData["Error"] = "Payment already processed.";
             return RedirectToAction("Details", new { id });
         }
-        if (application.Status != "Screening")
+        if (application.Status != "Pending")
         {
-            TempData["Error"] = "Only screening applications can be paid.";
+            TempData["Error"] = "Only pending applications can be paid.";
             return RedirectToAction("Details", new { id });
+        }
+
+        if (application.CreatedAt.AddHours(24) < DateTime.Now)
+        {
+            TempData["Error"] = "Payment window expired (24 hours). Application has been rejected.";
+            return RedirectToAction("Index");
         }
 
         var model = new PaymentViewModel
@@ -402,14 +430,15 @@ public class LeaseApplicationsController : Controller
             .FirstOrDefaultAsync(a => a.ApplicationId == model.ApplicationId && a.UserId == appUser.UserId);
 
         if (application == null) return NotFound();
+
         if (!application.IsPaymentApproved || application.PaymentDate != null)
         {
             TempData["Error"] = "Payment not allowed.";
             return RedirectToAction("Details", new { id = application.ApplicationId });
         }
-        if (application.Status != "Screening")
+        if (application.Status != "Pending")
         {
-            TempData["Error"] = "Only screening applications can be paid.";
+            TempData["Error"] = "Only pending applications can be paid.";
             return RedirectToAction("Details", new { id = application.ApplicationId });
         }
 
@@ -451,9 +480,6 @@ public class LeaseApplicationsController : Controller
             IsCurrent = true
         });
 
-        application.Unit.AvailabilityStatus = "Occupied";
-        await _db.SaveChangesAsync();
-
         await _notifier.SendAsync(application.UserId,
             $"Payment received! Your lease for Unit {application.Unit.UnitNumber} is now active. Welcome!",
             "LeaseUpdate");
@@ -468,5 +494,67 @@ public class LeaseApplicationsController : Controller
 
         TempData["Success"] = "Payment successful! Your lease is now active.";
         return RedirectToAction("Details", new { id = application.ApplicationId });
+    }
+
+    [Authorize(Roles = "PropertyManager")]
+    [HttpPost]
+    [ValidateAntiForgeryToken]
+    public async Task<IActionResult> TerminateApplication(int applicationId)
+    {
+        var application = await _db.LeaseApplications
+            .Include(a => a.Unit)
+            .Include(a => a.User)
+            .FirstOrDefaultAsync(a => a.ApplicationId == applicationId);
+
+        if (application == null) return NotFound();
+
+        if (application.Status != "Approved")
+        {
+            TempData["Error"] = "Only approved applications can be terminated.";
+            return RedirectToAction("Index");
+        }
+
+        application.Status = "Terminated";
+        application.UpdatedAt = DateTime.Now;
+        application.TerminationApprovedAt = DateTime.Now;
+        application.TerminationMoveOutDate = DateTime.Now.AddDays(3);
+        await _db.SaveChangesAsync();
+
+        await _notifier.SendAsync(application.UserId,
+            $"Your lease for Unit {application.Unit.UnitNumber} has been terminated. You have 3 days to vacate.",
+            "LeaseUpdate");
+
+        TempData["Success"] = "Lease terminated. Unit will become available after 3 days.";
+        return RedirectToAction("Index");
+    }
+
+    [Authorize(Roles = "PropertyManager")]
+    [HttpPost]
+    [ValidateAntiForgeryToken]
+    public async Task<IActionResult> RenewApplication(int applicationId)
+    {
+        var application = await _db.LeaseApplications
+            .Include(a => a.Unit)
+            .Include(a => a.User)
+            .FirstOrDefaultAsync(a => a.ApplicationId == applicationId);
+
+        if (application == null) return NotFound();
+
+        if (application.Status != "Approved")
+        {
+            TempData["Error"] = "Only approved applications can be renewed.";
+            return RedirectToAction("Index");
+        }
+
+        application.Status = "Renewal";
+        application.UpdatedAt = DateTime.Now;
+        await _db.SaveChangesAsync();
+
+        await _notifier.SendAsync(application.UserId,
+            $"Your lease for Unit {application.Unit.UnitNumber} has been renewed.",
+            "LeaseUpdate");
+
+        TempData["Success"] = "Lease renewed.";
+        return RedirectToAction("Index");
     }
 }

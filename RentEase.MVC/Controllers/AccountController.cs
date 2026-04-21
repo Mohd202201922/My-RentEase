@@ -1,4 +1,4 @@
-using Microsoft.AspNetCore.Authorization;
+﻿using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
@@ -47,21 +47,26 @@ public class AccountController : Controller
 
         if (result.Succeeded)
         {
-            // Log the login action
             var user = await _userManager.FindByEmailAsync(model.Email);
             var appUser = await _db.Users.FirstOrDefaultAsync(u => u.IdentityUserId == user!.Id);
             if (appUser != null)
             {
                 _db.Logs.Add(new Log
                 {
-                    UserId    = appUser.UserId,
-                    Action    = "Login",
-                    Details   = $"User {model.Email} logged in",
-                    LogLevel  = "Info",
-                    Source    = "Web",
+                    UserId = appUser.UserId,
+                    Action = "Login",
+                    Details = $"User {model.Email} logged in",
+                    LogLevel = "Info",
+                    Source = "Web",
                     CreatedAt = DateTime.Now
                 });
                 await _db.SaveChangesAsync();
+            }
+
+            // ✅ Redirect Property Manager to Dashboard
+            if (await _userManager.IsInRoleAsync(user, "PropertyManager"))
+            {
+                return RedirectToAction("Index", "Dashboard");
             }
 
             if (!string.IsNullOrEmpty(returnUrl) && Url.IsLocalUrl(returnUrl))
@@ -72,7 +77,7 @@ public class AccountController : Controller
         ModelState.AddModelError(string.Empty, "Invalid email or password.");
         return View(model);
     }
-
+    
     // GET /Account/Register
     [HttpGet]
     public IActionResult Register()

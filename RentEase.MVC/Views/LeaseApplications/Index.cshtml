@@ -12,7 +12,7 @@
     <li class="nav-item">
         <a class="nav-link @(ViewBag.Status == null ? "active" : "")" asp-action="Index">All</a>
     </li>
-    @foreach (var s in new[] { "Screening", "Approved", "Rejected", "Renewal", "Terminated" })
+    @foreach (var s in new[] { "Pending", "Approved", "Rejected", "Renewal", "Terminated" })
     {
         <li class="nav-item">
             <a class="nav-link @(ViewBag.Status == s ? "active" : "")" asp-action="Index" asp-route-status="@s">@s</a>
@@ -37,14 +37,7 @@ else
                     }
                     <th>Unit</th>
                     <th>Property</th>
-                    <th>Start Date</th>
                     <th>Status</th>
-                    <th>Applied</th>
-                    @if (User.IsInRole("PropertyManager"))
-                    {
-                        <th>Actions</th>
-                    }
-                </tr>
             </thead>
             <tbody>
                 @foreach (var a in Model)
@@ -53,10 +46,10 @@ else
                     {
                         "Approved" => "success",
                         "Rejected" => "danger",
-                        "Screening" => "info",
+                        "Pending" => "warning",
                         "Renewal" => "primary",
                         "Terminated" => "secondary",
-                        _ => "warning"
+                        _ => "secondary"
                     };
                     <tr style="cursor:pointer;" onclick="location.href='@Url.Action("Details", new { id = a.ApplicationId })'">
                         <td class="text-muted small">@a.ApplicationId</td>
@@ -66,30 +59,7 @@ else
                         }
                         <td>@a.UnitNumber</td>
                         <td>@a.PropertyName</td>
-                        <td>@(a.RequestedStartDate?.ToString("dd MMM yyyy") ?? "-")</td>
                         <td><span class="badge bg-@badgeColor">@a.Status</span></td>
-                        <td>@a.CreatedAt.ToString("dd MMM yyyy")</td>
-                        @if (User.IsInRole("PropertyManager") && a.Status == "Approved")
-                        {
-                            <td onclick="event.stopPropagation();">
-                                <div class="d-flex gap-1">
-                                    <form asp-action="TerminateApplication" method="post" style="display:inline;">
-                                        @Html.AntiForgeryToken()
-                                        <input type="hidden" name="applicationId" value="@a.ApplicationId" />
-                                        <button type="submit" class="btn btn-secondary btn-sm" onclick="return confirm('Terminate this lease?')">Terminate</button>
-                                    </form>
-                                    <form asp-action="RenewApplication" method="post" style="display:inline;">
-                                        @Html.AntiForgeryToken()
-                                        <input type="hidden" name="applicationId" value="@a.ApplicationId" />
-                                        <button type="submit" class="btn btn-primary btn-sm" onclick="return confirm('Renew this lease?')">Renew</button>
-                                    </form>
-                                </div>
-                            </td>
-                        }
-                        else if (User.IsInRole("PropertyManager"))
-                        {
-                            <td></td>
-                        }
                     </tr>
                 }
             </tbody>

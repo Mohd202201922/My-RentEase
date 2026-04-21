@@ -142,6 +142,8 @@ public class LeaseApplicationListViewModel
     public DateTime CreatedAt { get; set; }
     public bool IsPaymentApproved { get; set; }
     public DateTime? PaymentDate { get; set; }
+    public bool TerminationRequested { get; set; }
+
 }
 
 public class LeaseApplicationDetailViewModel
@@ -165,6 +167,10 @@ public class LeaseApplicationDetailViewModel
     public int? ScreeningId { get; set; }
     public bool IsPaymentApproved { get; set; }
     public DateTime? PaymentDate { get; set; }
+     public bool TerminationRequested { get; set; }
+    public DateTime? TerminationRequestDate { get; set; }
+    public DateTime? TerminationApprovedAt { get; set; }
+    public DateTime? TerminationMoveOutDate { get; set; }
 }
 
 // ── Maintenance ──────────────────────────────────────
@@ -525,7 +531,7 @@ public class PaymentViewModel
     public decimal SecurityDeposit { get; set; }
 
     [Required]
-    [CreditCard]
+    [RegularExpression(@"^(\d{4}[\s]?){3}\d{4}$|^\d{16}$", ErrorMessage = "Card number must be 16 digits (spaces optional).")]
     [Display(Name = "Card Number")]
     public string CardNumber { get; set; } = string.Empty;
 
