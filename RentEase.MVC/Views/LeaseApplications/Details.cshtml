@@ -74,7 +74,7 @@
                             <i class="fa fa-check-circle me-2"></i> Payment permission granted. The tenant can now proceed to pay.
                         </div>
                         <button class="btn btn-secondary w-100" disabled>
-                            <i class="fa fa-lock me-1"></i> Have Permission Pay
+                            <i class="fa fa-lock me-1"></i> Payment Already Permitted
                         </button>
                     }
                 }
@@ -145,7 +145,7 @@
                     </div>
                 }
 
-                <!-- Back button redirects to filtered list by status -->
+                <!-- Back button -->
                 <div class="d-flex gap-2 mt-3">
                     <a asp-action="Index" asp-route-status="@Model.Status" class="btn btn-outline-secondary">
                         <i class="fa fa-arrow-left me-1"></i> Back to @Model.Status List

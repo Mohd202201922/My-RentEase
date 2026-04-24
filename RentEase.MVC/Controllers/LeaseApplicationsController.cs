@@ -80,7 +80,7 @@ public class LeaseApplicationsController : Controller
         if (appUser == null) return Unauthorized();
 
         var query = _db.LeaseApplications
-            .Include(a => a.Unit).ThenInclude(u => u.Property)
+            .Include(a => a.Unit).ThenInclude(u => u.Property).ThenInclude(p => p.Location)
             .Include(a => a.User)
             .AsQueryable();
 
@@ -116,7 +116,9 @@ public class LeaseApplicationsController : Controller
     [Authorize(Roles = "Tenant")]
     public async Task<IActionResult> Apply(int unitId)
     {
-        var unit = await _db.Units.Include(u => u.Property).FirstOrDefaultAsync(u => u.UnitId == unitId);
+        var unit = await _db.Units
+            .Include(u => u.Property).ThenInclude(p => p.Location)
+            .FirstOrDefaultAsync(u => u.UnitId == unitId);
         if (unit == null) return NotFound();
         if (unit.AvailabilityStatus != "Available")
         {
@@ -197,7 +199,7 @@ public class LeaseApplicationsController : Controller
         if (appUser == null) return Unauthorized();
 
         var application = await _db.LeaseApplications
-            .Include(a => a.Unit).ThenInclude(u => u.Property)
+            .Include(a => a.Unit).ThenInclude(u => u.Property).ThenInclude(p => p.Location)
             .Include(a => a.User)
             .FirstOrDefaultAsync(a => a.ApplicationId == id);
 
@@ -210,8 +212,9 @@ public class LeaseApplicationsController : Controller
             ApplicationId = application.ApplicationId,
             UnitNumber = application.Unit.UnitNumber,
             PropertyName = application.Unit.Property.Name,
-            PropertyAddress = application.Unit.Property.Address,
-            TenantName = application.User.FullName,
+PropertyAddress = application.Unit.Property.Location == null
+    ? "Address not set"
+    : $"{application.Unit.Property.Location.BuildingNumber} {application.Unit.Property.Location.Street}, {application.Unit.Property.Location.City}",            TenantName = application.User.FullName,
             TenantPhone = application.User.Phone ?? "N/A",
             TenantEmail = application.User.Email,
             RequestedStartDate = application.RequestedStartDate,
@@ -301,7 +304,7 @@ public class LeaseApplicationsController : Controller
         if (appUser == null) return Unauthorized();
 
         var application = await _db.LeaseApplications
-            .Include(a => a.Unit)   // ✅ Include Unit to avoid null reference
+            .Include(a => a.Unit)
             .FirstOrDefaultAsync(a => a.ApplicationId == applicationId && a.UserId == appUser.UserId);
 
         if (application == null) return NotFound();
@@ -479,6 +482,7 @@ public class LeaseApplicationsController : Controller
             EffectiveDate = DateTime.Now,
             IsCurrent = true
         });
+        await _db.SaveChangesAsync();
 
         await _notifier.SendAsync(application.UserId,
             $"Payment received! Your lease for Unit {application.Unit.UnitNumber} is now active. Welcome!",

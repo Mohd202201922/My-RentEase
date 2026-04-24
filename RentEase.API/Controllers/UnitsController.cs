@@ -24,18 +24,21 @@ public class UnitsController : ControllerBase
     {
         var units = await _db.Units
             .Include(u => u.Property)
+                .ThenInclude(p => p.Location)  // NEW: include Location
             .Where(u => u.AvailabilityStatus == "Available")
             .Select(u => new UnitDto
             {
-                UnitId             = u.UnitId,
-                UnitNumber         = u.UnitNumber,
-                UnitType           = u.UnitType,
-                Sizesqm            = u.Sizesqm,
-                MonthlyRent        = u.MonthlyRent,
-                Amenities          = u.Amenities,
+                UnitId = u.UnitId,
+                UnitNumber = u.UnitNumber,
+                UnitType = u.UnitType,
+                Sizesqm = u.Sizesqm,
+                MonthlyRent = u.MonthlyRent,
+                Amenities = u.Amenities,
                 AvailabilityStatus = u.AvailabilityStatus,
-                PropertyName       = u.Property.Name,
-                PropertyAddress    = u.Property.Address
+                PropertyName = u.Property.Name,
+                PropertyAddress = u.Property.Location == null
+    ? "Address not set"
+    : $"{u.Property.Location.BuildingNumber} {u.Property.Location.Street}, {u.Property.Location.City}"
             })
             .ToListAsync();
 
@@ -48,18 +51,21 @@ public class UnitsController : ControllerBase
     {
         var unit = await _db.Units
             .Include(u => u.Property)
+                .ThenInclude(p => p.Location)  // NEW
             .Where(u => u.UnitId == id)
             .Select(u => new UnitDto
             {
-                UnitId             = u.UnitId,
-                UnitNumber         = u.UnitNumber,
-                UnitType           = u.UnitType,
-                Sizesqm            = u.Sizesqm,
-                MonthlyRent        = u.MonthlyRent,
-                Amenities          = u.Amenities,
+                UnitId = u.UnitId,
+                UnitNumber = u.UnitNumber,
+                UnitType = u.UnitType,
+                Sizesqm = u.Sizesqm,
+                MonthlyRent = u.MonthlyRent,
+                Amenities = u.Amenities,
                 AvailabilityStatus = u.AvailabilityStatus,
-                PropertyName       = u.Property.Name,
-                PropertyAddress    = u.Property.Address
+                PropertyName = u.Property.Name,
+                PropertyAddress = u.Property.Location == null
+    ? "Address not set"
+    : $"{u.Property.Location.BuildingNumber} {u.Property.Location.Street}, {u.Property.Location.City}"
             })
             .FirstOrDefaultAsync();
 

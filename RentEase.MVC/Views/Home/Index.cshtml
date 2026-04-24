@@ -61,7 +61,10 @@
             <div class="card h-100 shadow-sm">
                 <div class="card-body">
                     <h5 class="card-title"><i class="fa fa-building me-1 text-primary"></i>@property.Name</h5>
-                    <p class="text-muted small"><i class="fa fa-map-marker-alt me-1"></i>@property.Address</p>
+                    <p class="text-muted small">
+                        <i class="fa fa-map-marker-alt me-1"></i>
+                        @(property.Location?.BuildingNumber) @(property.Location?.Street), @(property.Location?.City)
+                    </p>
                     <span class="badge bg-secondary">@property.PropertyType</span>
                     <p class="card-text mt-2">@(property.Description ?? "Modern property in a great location.")</p>
                 </div>
@@ -74,4 +77,6 @@
             </div>
         </div>
     }
-</div>
+</div>@{
+ViewData["Title"] = "Welcome";
+}

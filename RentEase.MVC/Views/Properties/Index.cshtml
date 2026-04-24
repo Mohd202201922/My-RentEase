@@ -1,7 +1,4 @@
-@model List<RentEase.MVC.ViewModels.PropertyListViewModel>
-@{
-    ViewData["Title"] = "Properties";
-}
+@model List<PropertyListViewModel>
 
 <div class="d-flex justify-content-between align-items-center mb-3">
     <h2><i class="fa fa-building me-2"></i>Browse Properties</h2>
@@ -13,10 +10,9 @@
     }
 </div>
 
-<!-- Search & Filter -->
 <form method="get" class="row g-2 mb-4">
     <div class="col-md-5">
-        <input name="search" value="@ViewBag.Search" class="form-control" placeholder="Search by name, address or city..." />
+        <input name="search" value="@ViewBag.Search" class="form-control" placeholder="Search by name, street, city..." />
     </div>
     <div class="col-md-3">
         <select name="type" class="form-select">
@@ -48,7 +44,10 @@
                         <h5 class="card-title"><i class="fa fa-building me-1 text-primary"></i>@p.Name</h5>
                         <span class="badge bg-secondary">@p.PropertyType</span>
                     </div>
-                    <p class="text-muted small"><i class="fa fa-map-marker-alt me-1"></i>@p.Address, @p.City</p>
+                    <p class="text-muted small">
+                        <i class="fa fa-map-marker-alt me-1"></i>
+                        @p.BuildingNumber @p.Street, @p.City
+                    </p>
                     <p class="card-text">@(p.Description ?? "No description available.")</p>
                     <div class="d-flex gap-2">
                         <span class="badge bg-success">@p.AvailableUnits Available</span>
@@ -56,8 +55,7 @@
                     </div>
                 </div>
                 <div class="card-footer d-flex gap-2">
-                    <a asp-action="Units" asp-route-propertyId="@p.PropertyId"
-                       class="btn btn-outline-primary btn-sm flex-fill">
+                    <a asp-action="Units" asp-route-propertyId="@p.PropertyId" class="btn btn-outline-primary btn-sm flex-fill">
                         <i class="fa fa-door-open me-1"></i> View Units
                     </a>
                     @if (User.IsInRole("PropertyManager"))

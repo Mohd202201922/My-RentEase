@@ -1,4 +1,4 @@
-﻿@using RentEase.MVC.ViewModels
+﻿﻿@using RentEase.MVC.ViewModels
 @model PaymentViewModel
 @{
     ViewData["Title"] = "Complete Payment";
@@ -222,13 +222,13 @@
             <div class="payment-summary">
                 <h3>📄 Lease Summary</h3>
                 <table class="summary-table">
-                    <tr><td>Unit</td><td><strong>@Model.UnitNumber</strong></td></tr>
-                    <tr><td>Property</td><td>@Model.PropertyName</td></tr>
-                    <tr><td>Lease Start</td><td>@(Model.LeaseStartDate?.ToString("dd MMM yyyy") ?? "—")</td></tr>
-                    <tr><td>Lease End</td><td>@(Model.LeaseEndDate?.ToString("dd MMM yyyy") ?? "—")</td></tr>
-                    <tr><td>Monthly Rent</td><td>BD @Model.MonthlyRent.ToString("N2")</td></tr>
-                    <tr><td>Security Deposit</td><td>BD @Model.SecurityDeposit.ToString("N2")</td></tr>
-                    <tr class="total-row"><td>Total Due Now</td><td>BD @Model.Amount.ToString("N2")</td></tr>
+                    <tr><td>Unit<td><strong>@Model.UnitNumber</strong></tr>
+                    <tr><td>Property<td>@Model.PropertyName</tr>
+                    <tr><td>Lease Start<td>@(Model.LeaseStartDate?.ToString("dd MMM yyyy") ?? "—")</tr>
+                    <tr><td>Lease End<td>@(Model.LeaseEndDate?.ToString("dd MMM yyyy") ?? "—")</tr>
+                    <tr><td>Monthly Rent<td>BD @Model.MonthlyRent.ToString("N2")</tr>
+                    <tr><td>Security Deposit<td>BD @Model.SecurityDeposit.ToString("N2")</tr>
+                    <tr class="total-row"><td>Total Due Now<td>BD @Model.Amount.ToString("N2")</tr>
                 </table>
 
                 <h3>📜 Terms & Conditions</h3>

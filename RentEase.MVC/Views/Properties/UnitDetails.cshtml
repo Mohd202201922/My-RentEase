@@ -48,7 +48,10 @@
                     </div>
                     <div class="col-12">
                         <small class="text-muted d-block">Address</small>
-                        <strong><i class="fa fa-map-marker-alt me-1 text-danger"></i>@Model.Property.Address</strong>
+                        <strong>
+                            <i class="fa fa-map-marker-alt me-1 text-danger"></i>
+                            @Model.Property.Location.BuildingNumber @Model.Property.Location.Street, @Model.Property.Location.City
+                        </strong>
                     </div>
                     @if (!string.IsNullOrWhiteSpace(Model.Amenities))
                     {

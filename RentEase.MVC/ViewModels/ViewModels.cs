@@ -68,8 +68,11 @@ public class PropertyListViewModel
     public int PropertyId { get; set; }
     public string Name { get; set; } = string.Empty;
     public string? Description { get; set; }
-    public string Address { get; set; } = string.Empty;
-    public string? City { get; set; }
+    public string? BuildingNumber { get; set; }
+    public string? Block { get; set; }
+    public string? Street { get; set; }
+    public string City { get; set; } = string.Empty;
+    public string? LocationUrl { get; set; }
     public string? PropertyType { get; set; }
     public string? ImgPath { get; set; }
     public int TotalUnits { get; set; }
@@ -91,6 +94,35 @@ public class UnitListViewModel
     public int PropertyId { get; set; }
     public double AverageRating { get; set; }
     public int FeedbackCount { get; set; }
+}
+
+// ── Property Create/Edit ViewModel ────────────────────
+public class PropertyViewModel
+{
+    public int PropertyId { get; set; }
+
+    [Required]
+    public string Name { get; set; } = string.Empty;
+
+    public string? Description { get; set; }
+    public string? PropertyType { get; set; }
+    public string? ImgPath { get; set; }
+
+    // Location fields
+    [StringLength(20)]
+    public string? BuildingNumber { get; set; }
+
+    [StringLength(50)]
+    public string? Block { get; set; }
+
+    [StringLength(100)]
+    public string? Street { get; set; }
+
+    [Required]
+    public string City { get; set; } = string.Empty;
+
+    [StringLength(500)]
+    public string? LocationUrl { get; set; }
 }
 
 // ── Lease Application ────────────────────────────────
@@ -143,7 +175,6 @@ public class LeaseApplicationListViewModel
     public bool IsPaymentApproved { get; set; }
     public DateTime? PaymentDate { get; set; }
     public bool TerminationRequested { get; set; }
-
 }
 
 public class LeaseApplicationDetailViewModel
@@ -167,7 +198,7 @@ public class LeaseApplicationDetailViewModel
     public int? ScreeningId { get; set; }
     public bool IsPaymentApproved { get; set; }
     public DateTime? PaymentDate { get; set; }
-     public bool TerminationRequested { get; set; }
+    public bool TerminationRequested { get; set; }
     public DateTime? TerminationRequestDate { get; set; }
     public DateTime? TerminationApprovedAt { get; set; }
     public DateTime? TerminationMoveOutDate { get; set; }
@@ -331,7 +362,7 @@ public class PaymentListViewModel
     public string? Notes { get; set; }
 }
 
-// ── SCREENING APPOINTMENT ───────────────────────────
+// ── Screening Appointment (if used) ─────────────────
 public class BookScreeningViewModel
 {
     public int ApplicationId { get; set; }
@@ -339,19 +370,17 @@ public class BookScreeningViewModel
     public string UnitNumber { get; set; } = string.Empty;
     public string PropertyName { get; set; } = string.Empty;
     public decimal? MonthlyRent { get; set; }
-
-    // New: the lease start date from the application
     public DateTime LeaseStartDate { get; set; }
 
     [Required]
     [DataType(DataType.Date)]
     [Display(Name = "Preferred Date")]
-    public DateTime? PreferredDate { get; set; }  // nullable to allow empty
+    public DateTime? PreferredDate { get; set; }
 
     [Required]
     [DataType(DataType.Time)]
     [Display(Name = "Preferred Time")]
-    public string? PreferredTime { get; set; }   // store as "HH:mm"
+    public string? PreferredTime { get; set; }
 
     [StringLength(500)]
     [Display(Name = "Additional Notes")]
@@ -430,7 +459,7 @@ public class EditScreeningViewModel
     };
 }
 
-// ── LEASE AGREEMENT ─────────────────────────────────
+// ── Lease Agreement (if used) ───────────────────────
 public class CreateLeaseAgreementViewModel : IValidatableObject
 {
     public int ApplicationId { get; set; }
@@ -518,7 +547,7 @@ public class LeaseAgreementListViewModel
     public DateTime CreatedAt { get; set; }
 }
 
-// ── PAYMENT (Card) ───────────────────────────────────
+// ── Payment (Card) ───────────────────────────────────
 public class PaymentViewModel
 {
     public int ApplicationId { get; set; }

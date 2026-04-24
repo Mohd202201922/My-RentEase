@@ -38,6 +38,7 @@ public class HomeController : Controller
         ViewBag.AvailableUnits = await _db.Units.CountAsync(u => u.AvailabilityStatus == "Available");
         ViewBag.TotalUnits = await _db.Units.CountAsync();
         ViewBag.FeaturedProperties = await _db.Properties
+            .Include(p => p.Location)   // NEW: include location
             .Include(p => p.Units)
             .Take(3)
             .ToListAsync();
